@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <OutputType>Exe</OutputType>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../../Applications/FlyScan/Company.FlyScan.Runtime/Company.FlyScan.Runtime.csproj" />
+    <None Include="../../examples/Motion/FlyScan.13Axes.json" Link="FlyScan.13Axes.json" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="../../examples/Motion/FlyScan.DemoRecipe.json" Link="FlyScan.DemoRecipe.json" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+</Project>

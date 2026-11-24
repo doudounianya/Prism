@@ -1,0 +1,137 @@
+{
+  "enabled": false,
+  "allowNativeHardware": false,
+  "inputBankCount": 0,
+  "outputBankCount": 0,
+  "axes": [
+    {
+      "axis": "Front.X",
+      "name": "正面拍照直线动子X",
+      "hardwareAxis": 0,
+      "bus": "Localbus",
+      "kind": "Linear",
+      "unit": "Millimetre"
+    },
+    {
+      "axis": "Front.Y",
+      "name": "正面拍照横向电机Y",
+      "hardwareAxis": 1,
+      "bus": "Localbus",
+      "kind": "Linear",
+      "unit": "Millimetre"
+    },
+    {
+      "axis": "Front.R1",
+      "name": "正面拍照旋转电机R1",
+      "hardwareAxis": 2,
+      "bus": "Localbus",
+      "kind": "Rotary",
+      "unit": "Degree"
+    },
+    {
+      "axis": "Front.R2",
+      "name": "正面拍照旋转电机R2",
+      "hardwareAxis": 3,
+      "bus": "Localbus",
+      "kind": "Rotary",
+      "unit": "Degree"
+    },
+    {
+      "axis": "Unload.X",
+      "name": "下料直线动子",
+      "hardwareAxis": 4,
+      "bus": "EtherCAT",
+      "kind": "Linear",
+      "unit": "Millimetre"
+    },
+    {
+      "axis": "Back1.ArmZ",
+      "name": "背面手臂Z轴1",
+      "hardwareAxis": 5,
+      "bus": "EtherCAT",
+      "kind": "Linear",
+      "unit": "Millimetre"
+    },
+    {
+      "axis": "Back1.WatchR",
+      "name": "背面手表R轴1",
+      "hardwareAxis": 6,
+      "bus": "EtherCAT",
+      "kind": "Rotary",
+      "unit": "Degree"
+    },
+    {
+      "axis": "Back1.FixtureX",
+      "name": "背面治具X轴1",
+      "hardwareAxis": 7,
+      "bus": "EtherCAT",
+      "kind": "Linear",
+      "unit": "Millimetre"
+    },
+    {
+      "axis": "Back1.FixtureR",
+      "name": "背面治具R轴1",
+      "hardwareAxis": 8,
+      "bus": "EtherCAT",
+      "kind": "Rotary",
+      "unit": "Degree"
+    },
+    {
+      "axis": "Back2.ArmZ",
+      "name": "背面手臂Z轴2",
+      "hardwareAxis": 9,
+      "bus": "EtherCAT",
+      "kind": "Linear",
+      "unit": "Millimetre"
+    },
+    {
+      "axis": "Back2.WatchR",
+      "name": "背面手表R轴2",
+      "hardwareAxis": 10,
+      "bus": "EtherCAT",
+      "kind": "Rotary",
+      "unit": "Degree"
+    },
+    {
+      "axis": "Back2.FixtureX",
+      "name": "背面治具X轴2",
+      "hardwareAxis": 11,
+      "bus": "EtherCAT",
+      "kind": "Linear",
+      "unit": "Millimetre"
+    },
+    {
+      "axis": "Back2.FixtureR",
+      "name": "背面治具R轴2",
+      "hardwareAxis": 12,
+      "bus": "EtherCAT",
+      "kind": "Rotary",
+      "unit": "Degree"
+    }
+  ],
+  "coordinates": [
+    {
+      "coordinateId": "Front.Scan",
+      "name": "正面飞拍插补组",
+      "hardwareCoordinate": 0,
+      "axes": [
+        "Front.X",
+        "Front.Y",
+        "Front.R1"
+      ],
+      "coordinateEnabled": true
+    }
+  ],
+  "synchronizations": [
+    {
+      "id": "Front.RotationPair",
+      "name": "正面双工件旋转同步",
+      "enabled": true,
+      "masterAxis": "Front.R1",
+      "slaveAxis": "Front.R2",
+      "ratio": 1,
+      "mode": "ElectronicGear",
+      "masterSource": "CommandPosition"
+    }
+  ]
+}

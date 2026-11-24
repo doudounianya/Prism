@@ -1,0 +1,9 @@
+<Project>
+  <!-- 后台库的边界由构建约束保护；桌面适配及应用装配项目不在此名单内。 -->
+  <PropertyGroup Condition="'$(MSBuildProjectName)' == 'Company.Core' Or '$(MSBuildProjectName)' == 'Company.Logger' Or '$(MSBuildProjectName)' == 'Company.Database' Or '$(MSBuildProjectName)' == 'Company.Database.SqlSugar' Or '$(MSBuildProjectName)' == 'Company.Platform.Shared' Or '$(MSBuildProjectName)' == 'Company.PlcHmi.Shared' Or '$(MSBuildProjectName)' == 'Company.PlcHmi.Plc' Or '$(MSBuildProjectName)' == 'Company.PlcHmi.Persistence' Or $(MSBuildProjectName.StartsWith('Company.Hardware.'))">
+    <HeadlessLibrary>true</HeadlessLibrary>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(MSBuildProjectName)' == 'Company.Platform.Services' Or '$(MSBuildProjectName)' == 'Company.Hmi.Contracts' Or '$(MSBuildProjectName)' == 'Company.FlyScan.Runtime'">
+    <HeadlessLibrary>true</HeadlessLibrary>
+  </PropertyGroup>
+</Project>

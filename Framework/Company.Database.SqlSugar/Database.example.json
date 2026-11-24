@@ -1,0 +1,6 @@
+{
+  "Provider": "MySql",
+  "ConnectionString": "Server=127.0.0.1;Database=YOUR_DATABASE;User Id=YOUR_USER;Password=YOUR_PASSWORD;",
+  "CommandTimeoutSeconds": 30,
+  "CreateAccountTableIfMissing": true
+}

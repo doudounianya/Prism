@@ -1,0 +1,73 @@
+using Inovance.InoMotionCotrollerShop.InoServiceContract.EtherCATConfigApi;
+using System.Text;
+
+namespace Company.Hardware.ControlCard.INOVANCE;
+
+/// <summary>仅供驱动内部和离线工装使用的调用边界。默认拒绝未实现的调用，防止假 SDK 意外回落到真实硬件。</summary>
+internal interface IInovanceApi
+{
+    uint IMC_AxMoveStop(ulong cardHandle, Int16 axNo, Int16 stopType) => throw new NotSupportedException("离线调用未实现：IMC_AxMoveStop。");
+    uint IMC_AxServoOff(ulong cardHandle, Int16 axNo, Int16 count = 1) => throw new NotSupportedException("离线调用未实现：IMC_AxServoOff。");
+    uint IMC_AxServoOn(ulong cardHandle, Int16 axNo, Int16 count = 1) => throw new NotSupportedException("离线调用未实现：IMC_AxServoOn。");
+    uint IMC_CloseCardHandle(ulong cardHandle) => throw new NotSupportedException("离线调用未实现：IMC_CloseCardHandle。");
+    uint IMC_ClrAxSts(ulong cardHandle, Int16 axNo, Int16 count = 1) => throw new NotSupportedException("离线调用未实现：IMC_ClrAxSts。");
+    uint IMC_CrdArcCenterXYPlane(ulong cardHandle, Int16 crdNo, double[] pCenter, double[] pEndPos, Int16 dir, double height = 0, Int32 turn = 0, Int32 userID = 0) => throw new NotSupportedException("离线调用未实现：IMC_CrdArcCenterXYPlane。");
+    uint IMC_CrdArcCenterYZPlane(ulong cardHandle, Int16 crdNo, double[] pCenter, double[] pEndPos, Int16 dir, double height = 0, Int32 turn = 0, Int32 userID = 0) => throw new NotSupportedException("离线调用未实现：IMC_CrdArcCenterYZPlane。");
+    uint IMC_CrdArcCenterZXPlane(ulong cardHandle, Int16 crdNo, double[] pCenter, double[] pEndPos, Int16 dir, double height = 0, Int32 turn = 0, Int32 userID = 0) => throw new NotSupportedException("离线调用未实现：IMC_CrdArcCenterZXPlane。");
+    uint IMC_CrdClrData(ulong cardHandle, Int16 crdNo) => throw new NotSupportedException("离线调用未实现：IMC_CrdClrData。");
+    uint IMC_CrdClrError(ulong cardHandle, Int16 crdNo) => throw new NotSupportedException("离线调用未实现：IMC_CrdClrError。");
+    uint IMC_CrdDeleteMtSys(ulong cardHandle, Int16 crdNo) => throw new NotSupportedException("离线调用未实现：IMC_CrdDeleteMtSys。");
+    uint IMC_CrdEndData(ulong cardHandle, Int16 crdNo, ref Int16 pIsFinished) => throw new NotSupportedException("离线调用未实现：IMC_CrdEndData。");
+    uint IMC_CrdGetAdvParam(ulong cardHandle, Int16 crdNo, ref ImcApi.TCrdAdvParam pCrdAdvParam) => throw new NotSupportedException("离线调用未实现：IMC_CrdGetAdvParam。");
+    uint IMC_CrdGetArrivalSts(ulong cardHandle, Int16 crdNo, ref Int16 pSts) => throw new NotSupportedException("离线调用未实现：IMC_CrdGetArrivalSts。");
+    uint IMC_CrdGetIncMode(ulong cardHandle, Int16 crdNo, ref Int16 pMode) => throw new NotSupportedException("离线调用未实现：IMC_CrdGetIncMode。");
+    uint IMC_CrdGetMtSysParam(ulong cardHandle, Int16 crdNo, Int16[] pMaskAxNo, ref Int16 pLookAheadLen, ref double pEstopDec) => throw new NotSupportedException("离线调用未实现：IMC_CrdGetMtSysParam。");
+    uint IMC_CrdGetPausePos(ulong cardHandle, Int16 crdNo, double[] pPos) => throw new NotSupportedException("离线调用未实现：IMC_CrdGetPausePos。");
+    uint IMC_CrdGetPos(ulong cardHandle, Int16 crdNo, double[] pCrdPos) => throw new NotSupportedException("离线调用未实现：IMC_CrdGetPos。");
+    uint IMC_CrdGetSpace(ulong cardHandle, Int16 crdNo, ref Int32 pSpace) => throw new NotSupportedException("离线调用未实现：IMC_CrdGetSpace。");
+    uint IMC_CrdGetStatus(ulong cardHandle, Int16 crdNo, ref Int16 pStatus) => throw new NotSupportedException("离线调用未实现：IMC_CrdGetStatus。");
+    uint IMC_CrdLineXYZ(ulong cardHandle, Int16 crdNo, double[] pEndPos, Int32 userID = 0) => throw new NotSupportedException("离线调用未实现：IMC_CrdLineXYZ。");
+    uint IMC_CrdSetAdvParam(ulong cardHandle, Int16 crdNo, ref ImcApi.TCrdAdvParam pCrdAdvParam) => throw new NotSupportedException("离线调用未实现：IMC_CrdSetAdvParam。");
+    uint IMC_CrdSetIncMode(ulong cardHandle, Int16 crdNo, Int16 mode) => throw new NotSupportedException("离线调用未实现：IMC_CrdSetIncMode。");
+    uint IMC_CrdSetMtSys(ulong cardHandle, Int16 crdNo, Int16[] pMaskAxNo, Int16 lookAheadLen, double estopDec) => throw new NotSupportedException("离线调用未实现：IMC_CrdSetMtSys。");
+    uint IMC_CrdSetRatio(ulong cardHandle, Int16 crdNo, double ratio) => throw new NotSupportedException("离线调用未实现：IMC_CrdSetRatio。");
+    uint IMC_CrdSetTrajAccAndDec(ulong cardHandle, Int16 crdNo, double tgtAcc, double tgtdec) => throw new NotSupportedException("离线调用未实现：IMC_CrdSetTrajAccAndDec。");
+    uint IMC_CrdSetTrajVel(ulong cardHandle, Int16 crdNo, double tgtVel) => throw new NotSupportedException("离线调用未实现：IMC_CrdSetTrajVel。");
+    uint IMC_CrdSetZeroFlag(ulong cardHandle, Int16 crdNo, Int16 ZeroFlag) => throw new NotSupportedException("离线调用未实现：IMC_CrdSetZeroFlag。");
+    uint IMC_CrdStart(ulong cardHandle, Int16 crdNo) => throw new NotSupportedException("离线调用未实现：IMC_CrdStart。");
+    uint IMC_CrdStop(ulong cardHandle, Int16 crdNo, Int16 stopType) => throw new NotSupportedException("离线调用未实现：IMC_CrdStop。");
+    uint IMC_DownLoadDeviceConfig(ulong cardHandle, string pathName) => throw new NotSupportedException("离线调用未实现：IMC_DownLoadDeviceConfig。");
+    uint IMC_DownLoadSystemConfig(ulong cardHandle, string pathName) => throw new NotSupportedException("离线调用未实现：IMC_DownLoadSystemConfig。");
+    uint IMC_FinishHoming(ulong cardHandle, Int16 axNo) => throw new NotSupportedException("离线调用未实现：IMC_FinishHoming。");
+    uint IMC_GetAxEncAcc(ulong cardHandle, Int16 axNo, double[] pEncAcc, Int16 count = 1) => throw new NotSupportedException("离线调用未实现：IMC_GetAxEncAcc。");
+    uint IMC_GetAxEncPos(ulong cardHandle, Int16 axNo, double[] pEncPos, Int16 count = 1) => throw new NotSupportedException("离线调用未实现：IMC_GetAxEncPos。");
+    uint IMC_GetAxEncVel(ulong cardHandle, Int16 axNo, double[] pEncVel, Int16 count = 1) => throw new NotSupportedException("离线调用未实现：IMC_GetAxEncVel。");
+    uint IMC_GetAxEquiv(ulong cardHandle, Int16 axNo, double[] pAxEquArray, Int16 count = 1) => throw new NotSupportedException("离线调用未实现：IMC_GetAxEquiv。");
+    uint IMC_GetAxPrfAcc(ulong cardHandle, Int16 axNo, double[] pPrfAcc, Int16 count = 1) => throw new NotSupportedException("离线调用未实现：IMC_GetAxPrfAcc。");
+    uint IMC_GetAxPrfPos(ulong cardHandle, Int16 axNo, double[] pPrfPos, Int16 count = 1) => throw new NotSupportedException("离线调用未实现：IMC_GetAxPrfPos。");
+    uint IMC_GetAxPrfVel(ulong cardHandle, Int16 axNo, double[] pPrfVel, Int16 count = 1) => throw new NotSupportedException("离线调用未实现：IMC_GetAxPrfVel。");
+    uint IMC_GetAxSts(ulong cardHandle, Int16 axNo, Int32[] pAxSts, Int16 count = 1) => throw new NotSupportedException("离线调用未实现：IMC_GetAxSts。");
+    uint IMC_GetAxType(ulong cardHandle, Int16 axNo, ref Int16 pAxType, ref Int16 pOutChn) => throw new NotSupportedException("离线调用未实现：IMC_GetAxType。");
+    uint IMC_GetCardResource(ulong cardHandle, ref ImcApi.TRsouresNum pRsouresNum) => throw new NotSupportedException("离线调用未实现：IMC_GetCardResource。");
+    uint IMC_GetCardsNum(ref Int32 cardsNum) => throw new NotSupportedException("离线调用未实现：IMC_GetCardsNum。");
+    uint IMC_GetECATMasterSts(ulong cardHandle, ref UInt32 pStatus) => throw new NotSupportedException("离线调用未实现：IMC_GetECATMasterSts。");
+    uint IMC_GetEcatPackDi(ulong cardHandle, Int16 startGrpNo, Int16[] pValue, Int16 grpCnt) => throw new NotSupportedException("离线调用未实现：IMC_GetEcatPackDi。");
+    uint IMC_GetEcatPackDo(ulong cardHandle, Int16 startGrpNo, Int16[] pValue, Int16 grpCnt) => throw new NotSupportedException("离线调用未实现：IMC_GetEcatPackDo。");
+    uint IMC_GetHomingStatus(ulong cardHandle, Int16 axNo, ref Int16 pStatus) => throw new NotSupportedException("离线调用未实现：IMC_GetHomingStatus。");
+    uint IMC_GetHwSysPara(ulong cardHandle, ref Int16 pCycleTime, ref Int16 pHwType) => throw new NotSupportedException("离线调用未实现：IMC_GetHwSysPara。");
+    uint IMC_OpenCardHandle(Int32 cardNo, ref ulong pCardHandle) => throw new NotSupportedException("离线调用未实现：IMC_OpenCardHandle。");
+    uint IMC_PauseMove(ulong cardHandle, Int16 axNo) => throw new NotSupportedException("离线调用未实现：IMC_PauseMove。");
+    uint IMC_ResumeMove(ulong cardHandle, Int16 axNo) => throw new NotSupportedException("离线调用未实现：IMC_ResumeMove。");
+    uint IMC_ScanCardECAT(ulong cardHandle, Int32 blockFlag) => throw new NotSupportedException("离线调用未实现：IMC_ScanCardECAT。");
+    uint IMC_SetAxEquiv(ulong cardHandle, Int16 axNo, double[] pAxEquArray, Int16 count = 1) => throw new NotSupportedException("离线调用未实现：IMC_SetAxEquiv。");
+    uint IMC_SetEcatDoBit(ulong cardHandle, Int16 doNo, Int16 Value) => throw new NotSupportedException("离线调用未实现：IMC_SetEcatDoBit。");
+    uint IMC_SetEmgTrigLevelInv(ulong cardHandle, Int16 inverse) => throw new NotSupportedException("离线调用未实现：IMC_SetEmgTrigLevelInv。");
+    uint IMC_SetSingleAxMvPara(ulong cardHandle, Int16 axNo, double vel, double acc, double dec) => throw new NotSupportedException("离线调用未实现：IMC_SetSingleAxMvPara。");
+    uint IMC_StartHomingInUnit(ulong cardHandle, Int16 axNo, ref ImcApi.THomingParaInUint pHomingPara) => throw new NotSupportedException("离线调用未实现：IMC_StartHomingInUnit。");
+    uint IMC_StartJogMove(ulong cardHandle, Int16 axNo, double tgVel) => throw new NotSupportedException("离线调用未实现：IMC_StartJogMove。");
+    uint IMC_StartPtpMove(ulong cardHandle, Int16 axNo, double tgtPos, Int16 posType = 0) => throw new NotSupportedException("离线调用未实现：IMC_StartPtpMove。");
+    uint IMC_GetAxBondCfg(ulong cardHandle, short axNo, ref short pAxType, ref short pOutputChn, ref short pLocalEncSrc) => throw new NotSupportedException("离线调用未实现：IMC_GetAxBondCfg。");
+    uint IMC_CrdGetRatio(ulong cardHandle, short crdNo, ref double pRatio) => throw new NotSupportedException("离线调用未实现：IMC_CrdGetRatio。");
+    uint IMC_CrdGetTrajVel(ulong cardHandle, short crdNo, ref double pTgtVel) => throw new NotSupportedException("离线调用未实现：IMC_CrdGetTrajVel。");
+    uint IMC_CrdGetTrajAccAndDec(ulong cardHandle, short crdNo, ref double pTgtAcc, ref double pTgtDec) => throw new NotSupportedException("离线调用未实现：IMC_CrdGetTrajAccAndDec。");
+}

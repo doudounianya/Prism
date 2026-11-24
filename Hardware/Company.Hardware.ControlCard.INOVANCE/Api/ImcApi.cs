@@ -19,6 +19,12 @@ namespace Inovance.InoMotionCotrollerShop.InoServiceContract.EtherCATConfigApi
     using HANDLETYPE = UInt32;
 #endif
 
+    /// <summary>
+    /// 汇川原生 API 的声明层，不能直接作为“板卡已支持该功能”的证明。
+    /// 当前部署仍使用经过备份的 1.8.29.4 x64 DLL；不因取得新版头文件而整包替换。
+    /// 本文件对已确认的输入/输出数组补充了封送方向；调用层仍必须验证数组长度和资源范围。
+    /// 原厂 C# 与 C++ 自身有冲突的旧声明改为明确拒绝，避免把参数错位带入非托管代码。
+    /// </summary>
     public class ImcApi
     {
     
@@ -29,6 +35,12 @@ namespace Inovance.InoMotionCotrollerShop.InoServiceContract.EtherCATConfigApi
 #endif
 
         public const uint EXE_SUCCESS = 0x00000000;
+
+        // API 返回码与坐标系状态字的高/低字节含义不同，不能混用魔法数。
+        // 依据所提供 errorcode.h：0x0064 是坐标系不存在，并非十进制 64 的“缓冲满”。
+        public const uint ERR_CRD_NOT_EXIST = 0x0064;
+        public const uint ERR_CRD_BUF_FULL = 0x0079;
+        public const uint ERR_FIFO_FULL = 0x00D6;
 
         /******************板卡资源结构体定义***************************/
         [StructLayout(LayoutKind.Sequential)]
@@ -96,9 +108,9 @@ namespace Inovance.InoMotionCotrollerShop.InoServiceContract.EtherCATConfigApi
         {
             public Int16 homeMethod;        // 回原点方法
             public Int32 offset;            // 回原点后的零点偏执 pulse
-            public UInt32 highVel;          // 高速搜索减速点速度 pulse/ms
-            public UInt32 lowVel;           // 搜索原点低 pulse/ms
-            public UInt32 acc; 				// 加速度 pulse/ms^2
+            public UInt32 highVel;          // 高速搜索速度 pulse/s；C02 手册及 C++ 头文件均采用秒，旧 C# 注释曾误写毫秒
+            public UInt32 lowVel;           // 搜索原点低速 pulse/s
+            public UInt32 acc; 				// 加速度 pulse/s^2
             public UInt32 overtime;         // 超时时间 ms
             public Int16 posSrc;            // 仅对端子板轴回零有效，ECAT轴无效（暂不生效）
         };
@@ -121,11 +133,11 @@ namespace Inovance.InoMotionCotrollerShop.InoServiceContract.EtherCATConfigApi
         public struct TCrdAdvParam
         {
             public Int16 userVelMode;          // 用户速度规划模式：0 系统前瞻速度规划，1 用户设定速度规划(默认：0)
-            public Int16 transMode;            // 过渡模式 1：无过渡 2：圆弧过渡 （默认:2）
-            public Int16 noDataProtect;        // 数据断流保护：0不保护，1保护 （默认：1）
+            public Int16 transMode;            // C02 及 C++：0 无过渡、1 过渡；不用旧 C# 注释中的 1/2，也不依赖默认值
+            public Int16 noDataProtect;        // 数据断流保护：0 不保护、1 保护；手册默认值说明不一致，调用方应显式设置
             public Int16 circAccChangeEn;      // 圆弧变加速使能：0不变加速，1变加速 （默认：0） 
             public Int16 noCoplaneCircOptm;    // 异面圆弧优化：0不开启，1开启
-            public double turnCoef;            // 拐弯系数: [0.01~50]（默认：1.0）
+            public double turnCoef;            // 拐弯系数：C02 给出 [0.01,100]；具体应用需显式设置并核对，不依赖旧注释上限
             public double tol;                 // 插补精度: 大于0的值（默认：0 ，单位取决于设置的当量）
         };
 
@@ -417,6 +429,12 @@ namespace Inovance.InoMotionCotrollerShop.InoServiceContract.EtherCATConfigApi
         public const uint AX_EMG_STOP_BIT = (0x00000200);		// 运动急停标志
         public const uint AX_ECAT_BIT = (0x00000400);		    // 总线轴标志
 
+        // C02 表 11-1 及配套 C++ 头新增的状态位；原点输入和回零成功必须分别判断。
+        public const uint AX_SW_ABNOR_BIT = 0x00000800;       // 轴异常报警（包含需独立判断的龙门异常）
+        public const uint AX_WARNING_BIT = 0x00001000;        // EtherCAT 轴警告，不自动等同于所有故障已清除
+        public const uint AX_WARING_BIT = AX_WARNING_BIT;     // 保留原厂 C++ 拼写，便于对照 SDK 资料
+        public const uint AX_HM_BIT = 0x00002000;             // HOME 原点输入，仅表示开关状态
+
         /******************采样数据触发类型（trigType）定义**************/
         public const uint SAMPLE_TRIG_IMMEDIATE = (0);  // 立即采集
         public const uint SAMPLE_TRIG_DELAY = (1);      // 延时采集
@@ -550,10 +568,10 @@ namespace Inovance.InoMotionCotrollerShop.InoServiceContract.EtherCATConfigApi
         public static extern UInt32 IMC_GetAxMaxMtPara(HANDLETYPE cardHandle, Int16 axNo, ref TMtPara pMtPara);
         //设置轴当量参数
         [DllImport(EtherCATConfigApiDllName, EntryPoint = "IMC_SetAxEquiv", ExactSpelling = false, CallingConvention = CallingConvention.Cdecl)]
-        public static extern UInt32 IMC_SetAxEquiv(HANDLETYPE cardHandle, Int16 axNo, double[] pAxEquArray, Int16 count = 1);
+        public static extern UInt32 IMC_SetAxEquiv(HANDLETYPE cardHandle, Int16 axNo, [In, MarshalAs(UnmanagedType.LPArray, SizeParamIndex = 3)] double[] pAxEquArray, Int16 count = 1);
         //获取轴当量参数
         [DllImport(EtherCATConfigApiDllName, EntryPoint = "IMC_GetAxEquiv", ExactSpelling = false, CallingConvention = CallingConvention.Cdecl)]
-        public static extern UInt32 IMC_GetAxEquiv(HANDLETYPE cardHandle, Int16 axNo, double[] pAxEquArray, Int16 count = 1);
+        public static extern UInt32 IMC_GetAxEquiv(HANDLETYPE cardHandle, Int16 axNo, [Out, MarshalAs(UnmanagedType.LPArray, SizeParamIndex = 3)] double[] pAxEquArray, Int16 count = 1);
         //轴输出绑定设置，根据轴类型和输出通道进行绑定
         [DllImport(EtherCATConfigApiDllName, EntryPoint = "IMC_SetAxBondCfg", ExactSpelling = false, CallingConvention = CallingConvention.Cdecl)]
         public static extern UInt32 IMC_SetAxBondCfg(HANDLETYPE cardHandle, Int16 axNo, Int16 axType, Int16 outputChn, Int16 loaclEncSrc);
@@ -633,8 +651,10 @@ namespace Inovance.InoMotionCotrollerShop.InoServiceContract.EtherCATConfigApi
         [DllImport(EtherCATConfigApiDllName, EntryPoint = "IMC_SetAxStopDec", ExactSpelling = false, CallingConvention = CallingConvention.Cdecl)]
         public static extern UInt32 IMC_SetAxStopDec(HANDLETYPE cardHandle, Int16 axNo, double decSmoothStop, double decAbruptStop);
         //获取轴停止减速度
-        [DllImport(EtherCATConfigApiDllName, EntryPoint = "IMC_GetAxStopDec", ExactSpelling = false, CallingConvention = CallingConvention.Cdecl)]
-        public static extern UInt32 IMC_GetAxStopDec(HANDLETYPE cardHandle, ref double decSmoothStop, ref double decAbruptStop);
+        // 原厂 C++ 多一个 axNo 参数。旧 C# 参数错位，不能依据导出名猜测 DLL 实际 ABI。
+        [Obsolete("原厂 C#/C++ 的轴号参数不一致；旧声明禁止调用，须先核对配套 DLL 的完整 ABI。", true)]
+        public static UInt32 IMC_GetAxStopDec(HANDLETYPE cardHandle, ref double decSmoothStop, ref double decAbruptStop)
+            => throw new NotSupportedException("IMC_GetAxStopDec 旧声明缺少轴号，已禁止进入原生库。");
         //获取轴最大急停时间
         [DllImport(EtherCATConfigApiDllName, EntryPoint = "IMC_GetAxEmgMaxDecLmt", ExactSpelling = false, CallingConvention = CallingConvention.Cdecl)]
         public static extern UInt32 IMC_GetAxEmgMaxDecLmt(HANDLETYPE cardHandle, Int16 axNo, ref UInt16 pDecLmtTime);
@@ -818,7 +838,7 @@ namespace Inovance.InoMotionCotrollerShop.InoServiceContract.EtherCATConfigApi
         public static extern UInt32 IMC_GetEcatGrpDo(HANDLETYPE cardHandle, Int16 groupNo, ref Int16 pValue);
         //按包获取DO输出值，获取从第grpNo组开始的grpCnt组的 DO值
         [DllImport(EtherCATConfigApiDllName, EntryPoint = "IMC_GetEcatPackDo", ExactSpelling = false, CallingConvention = CallingConvention.Cdecl)]
-        public static extern UInt32 IMC_GetEcatPackDo(HANDLETYPE cardHandle, Int16 startGrpNo, Int16[] pValue, Int16 grpCnt);
+        public static extern UInt32 IMC_GetEcatPackDo(HANDLETYPE cardHandle, Int16 startGrpNo, [Out, MarshalAs(UnmanagedType.LPArray, SizeParamIndex = 3)] Int16[] pValue, Int16 grpCnt);
 
         //按位获取DI输入值，获取第diNo号的 DI值
         [DllImport(EtherCATConfigApiDllName, EntryPoint = "IMC_GetEcatDiBit", ExactSpelling = false, CallingConvention = CallingConvention.Cdecl)]
@@ -828,7 +848,7 @@ namespace Inovance.InoMotionCotrollerShop.InoServiceContract.EtherCATConfigApi
         public static extern UInt32 IMC_GetEcatGrpDi(HANDLETYPE cardHandle, Int16 groupNo, ref Int16 pValue);
         //按包获取DI输入值，获取从第grpNo组开始的grpCnt组的 DI值
         [DllImport(EtherCATConfigApiDllName, EntryPoint = "IMC_GetEcatPackDi", ExactSpelling = false, CallingConvention = CallingConvention.Cdecl)]
-        public static extern UInt32 IMC_GetEcatPackDi(HANDLETYPE cardHandle, Int16 startGrpNo, Int16[] pValue, Int16 grpCnt);
+        public static extern UInt32 IMC_GetEcatPackDi(HANDLETYPE cardHandle, Int16 startGrpNo, [Out, MarshalAs(UnmanagedType.LPArray, SizeParamIndex = 3)] Int16[] pValue, Int16 grpCnt);
         //按位设置DO输出状态延时取反
         [DllImport(EtherCATConfigApiDllName, EntryPoint = "IMC_SetEcatDoInvDelay", ExactSpelling = false, CallingConvention = CallingConvention.Cdecl)]
         public static extern UInt32 IMC_SetEcatDoInvDelay(HANDLETYPE cardHandle, Int16 doNo, Int16 doVal, Int16 delay);
@@ -1068,8 +1088,11 @@ namespace Inovance.InoMotionCotrollerShop.InoServiceContract.EtherCATConfigApi
         [DllImport(EtherCATConfigApiDllName, EntryPoint = "IMC_SetPSOMode0Para", ExactSpelling = false, CallingConvention = CallingConvention.Cdecl)]
         public static extern UInt32 IMC_SetPSOMode0Para(HANDLETYPE cardHandle, Int16 portNo, Int16 dimension, Int16 posType, Int16 pinType, Int16[] pPsoPosIndexArray, double outPlsWidth, Int32 syncDeltaPos);
         //获取PSO模式0的参数
-        [DllImport(EtherCATConfigApiDllName, EntryPoint = "IMC_GetPSOMode0Para", ExactSpelling = false, CallingConvention = CallingConvention.Cdecl)]
-        public static extern UInt32 IMC_GetPSOMode0Para(HANDLETYPE cardHandle, Int16 portNo, ref Int16 pDimension, ref Int16 pPosType, ref Int16 pPinType, ref Int16 pPsoPosIndexArray, ref double pOutPlsWidth, ref Int32 pSyncDeltaPos);
+        // pPsoPosIndexArray 是原生数组输出指针，ref 单个 Int16 只有两个字节，不能承接多维结果。
+        // PSO 的完整参数/资源协议尚未确认，本批不增加可被误调用的“猜容量”数组入口。
+        [Obsolete("PSO 位置源是数组输出，旧 ref Int16 容量不足；完整 PSO 协议未确认，禁止调用。", true)]
+        public static UInt32 IMC_GetPSOMode0Para(HANDLETYPE cardHandle, Int16 portNo, ref Int16 pDimension, ref Int16 pPosType, ref Int16 pPinType, ref Int16 pPsoPosIndexArray, ref double pOutPlsWidth, ref Int32 pSyncDeltaPos)
+            => throw new NotSupportedException("PSO Getter 旧标量声明存在数组越界风险，已禁止进入原生库。");
         //启动PSO功能
         [DllImport(EtherCATConfigApiDllName, EntryPoint = "IMC_StartPSO", ExactSpelling = false, CallingConvention = CallingConvention.Cdecl)]
         public static extern UInt32 IMC_StartPSO(HANDLETYPE cardHandle, Int16 portNo);
@@ -1238,35 +1261,35 @@ namespace Inovance.InoMotionCotrollerShop.InoServiceContract.EtherCATConfigApi
         /*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
         //获取轴规划模式
         [DllImport(EtherCATConfigApiDllName, EntryPoint = "IMC_GetAxPrfMode", ExactSpelling = false, CallingConvention = CallingConvention.Cdecl)]
-        public static extern UInt32 IMC_GetAxPrfMode(HANDLETYPE cardHandle, Int16 axNo, Int16[] pPrfMode, Int16 count = 1);
+        public static extern UInt32 IMC_GetAxPrfMode(HANDLETYPE cardHandle, Int16 axNo, [Out, MarshalAs(UnmanagedType.LPArray, SizeParamIndex = 3)] Int16[] pPrfMode, Int16 count = 1);
         //获取轴状态
         [DllImport(EtherCATConfigApiDllName, EntryPoint = "IMC_GetAxSts", ExactSpelling = false, CallingConvention = CallingConvention.Cdecl)]
-        public static extern UInt32 IMC_GetAxSts(HANDLETYPE cardHandle, Int16 axNo, Int32[] pAxSts, Int16 count = 1);
+        public static extern UInt32 IMC_GetAxSts(HANDLETYPE cardHandle, Int16 axNo, [Out, MarshalAs(UnmanagedType.LPArray, SizeParamIndex = 3)] Int32[] pAxSts, Int16 count = 1);
 
         //清除轴状态
         [DllImport(EtherCATConfigApiDllName, EntryPoint = "IMC_ClrAxSts", ExactSpelling = false, CallingConvention = CallingConvention.Cdecl)]
         public static extern UInt32 IMC_ClrAxSts(HANDLETYPE cardHandle, Int16 axNo, Int16 count = 1);
         //获取轴规划位置（单条最多16个轴）
         [DllImport(EtherCATConfigApiDllName, EntryPoint = "IMC_GetAxPrfPos", ExactSpelling = false, CallingConvention = CallingConvention.Cdecl)]
-        public static extern UInt32 IMC_GetAxPrfPos(HANDLETYPE cardHandle, Int16 axNo, double[] pPrfPos, Int16 count = 1);
+        public static extern UInt32 IMC_GetAxPrfPos(HANDLETYPE cardHandle, Int16 axNo, [Out, MarshalAs(UnmanagedType.LPArray, SizeParamIndex = 3)] double[] pPrfPos, Int16 count = 1);
         //获取轴规划速度
         [DllImport(EtherCATConfigApiDllName, EntryPoint = "IMC_GetAxPrfVel", ExactSpelling = false, CallingConvention = CallingConvention.Cdecl)]
-        public static extern UInt32 IMC_GetAxPrfVel(HANDLETYPE cardHandle, Int16 axNo, double[] pPrfVel, Int16 count = 1);
+        public static extern UInt32 IMC_GetAxPrfVel(HANDLETYPE cardHandle, Int16 axNo, [Out, MarshalAs(UnmanagedType.LPArray, SizeParamIndex = 3)] double[] pPrfVel, Int16 count = 1);
         //获取轴规划加速度
         [DllImport(EtherCATConfigApiDllName, EntryPoint = "IMC_GetAxPrfAcc", ExactSpelling = false, CallingConvention = CallingConvention.Cdecl)]
-        public static extern UInt32 IMC_GetAxPrfAcc(HANDLETYPE cardHandle, Int16 axNo, double[] pPrfAcc, Int16 count = 1);
+        public static extern UInt32 IMC_GetAxPrfAcc(HANDLETYPE cardHandle, Int16 axNo, [Out, MarshalAs(UnmanagedType.LPArray, SizeParamIndex = 3)] double[] pPrfAcc, Int16 count = 1);
         //获取轴反馈位置
         [DllImport(EtherCATConfigApiDllName, EntryPoint = "IMC_GetAxEncPos", ExactSpelling = false, CallingConvention = CallingConvention.Cdecl)]
-        public static extern UInt32 IMC_GetAxEncPos(HANDLETYPE cardHandle, Int16 axNo, double[] pEncPos, Int16 count = 1);
+        public static extern UInt32 IMC_GetAxEncPos(HANDLETYPE cardHandle, Int16 axNo, [Out, MarshalAs(UnmanagedType.LPArray, SizeParamIndex = 3)] double[] pEncPos, Int16 count = 1);
         //获取轴原始反馈位置
         [DllImport(EtherCATConfigApiDllName, EntryPoint = "IMC_GetAxOrgEncPos", ExactSpelling = false, CallingConvention = CallingConvention.Cdecl)]
         public static extern UInt32 IMC_GetAxOrgEncPos(HANDLETYPE cardHandle, Int16 axNo, Int32[] pOrgEncPos, Int16 count = 1);
         //获取轴反馈速度
         [DllImport(EtherCATConfigApiDllName, EntryPoint = "IMC_GetAxEncVel", ExactSpelling = false, CallingConvention = CallingConvention.Cdecl)]
-        public static extern UInt32 IMC_GetAxEncVel(HANDLETYPE cardHandle, Int16 axNo, double[] pEncVel, Int16 count = 1);
+        public static extern UInt32 IMC_GetAxEncVel(HANDLETYPE cardHandle, Int16 axNo, [Out, MarshalAs(UnmanagedType.LPArray, SizeParamIndex = 3)] double[] pEncVel, Int16 count = 1);
         //获取轴反馈加速度
         [DllImport(EtherCATConfigApiDllName, EntryPoint = "IMC_GetAxEncAcc", ExactSpelling = false, CallingConvention = CallingConvention.Cdecl)]
-        public static extern UInt32 IMC_GetAxEncAcc(HANDLETYPE cardHandle, Int16 axNo, double[] pEncAcc, Int16 count = 1);
+        public static extern UInt32 IMC_GetAxEncAcc(HANDLETYPE cardHandle, Int16 axNo, [Out, MarshalAs(UnmanagedType.LPArray, SizeParamIndex = 3)] double[] pEncAcc, Int16 count = 1);
         //获取规划器位置
         [DllImport(EtherCATConfigApiDllName, EntryPoint = "IMC_GetPrfPos", ExactSpelling = false, CallingConvention = CallingConvention.Cdecl)]
         public static extern UInt32 IMC_GetPrfPos(HANDLETYPE cardHandle, Int16 axNo, double[] pPrfPos, Int16 count = 1);
@@ -1399,8 +1422,9 @@ namespace Inovance.InoMotionCotrollerShop.InoServiceContract.EtherCATConfigApi
         [DllImport(EtherCATConfigApiDllName, EntryPoint = "IMC_GetLocalCaptRepeatStatus", ExactSpelling = false, CallingConvention = CallingConvention.Cdecl)]
         public static extern UInt32 IMC_GetLocalCaptRepeatStatus(HANDLETYPE cardHandle, Int16 axNo, ref Int16 pCaptSts, ref Int16 pCaptCount);
         //获取端子板轴连续位置捕获位置值
-        [DllImport(EtherCATConfigApiDllName, EntryPoint = "IMC_GetLocalCaptRepeatPos", ExactSpelling = false, CallingConvention = CallingConvention.Cdecl)]
-        public static extern UInt32 IMC_GetLocalCaptRepeatPos(HANDLETYPE cardHandle, Int16 axNo, Int16 count, Int32[] pCaptPosArray);
+        [Obsolete("原厂 C++ 包含 startNo，旧 C# 缺少该参数；配套 ABI 确认前禁止调用。", true)]
+        public static UInt32 IMC_GetLocalCaptRepeatPos(HANDLETYPE cardHandle, Int16 axNo, Int16 count, Int32[] pCaptPosArray)
+            => throw new NotSupportedException("连续捕获旧声明缺少起始索引，已禁止进入原生库。");
 
         /*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
         /*~~~			PTP连续运动模式接口       				~~~*/
@@ -1528,12 +1552,13 @@ namespace Inovance.InoMotionCotrollerShop.InoServiceContract.EtherCATConfigApi
         /*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
         /*~~~				缓冲区插补运动模式接口     			~~~*/
         /*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
-        //插补坐标系创建
+        // 插补坐标系创建：C02 PDF 213 页明确要求 XYZ 映射数组长度为 3，XY 模式第三项为 -1。
+        // [In]/[Out] 及固定元素数是封送契约；数组实际长度仍由上层驱动在调用前验证。
         [DllImport(EtherCATConfigApiDllName, EntryPoint = "IMC_CrdSetMtSys", ExactSpelling = false, CallingConvention = CallingConvention.Cdecl)]
-        public static extern UInt32 IMC_CrdSetMtSys(HANDLETYPE cardHandle, Int16 crdNo, Int16[] pMaskAxNo, Int16 lookAheadLen, double estopDec);
+        public static extern UInt32 IMC_CrdSetMtSys(HANDLETYPE cardHandle, Int16 crdNo, [In, MarshalAs(UnmanagedType.LPArray, SizeConst = 3)] Int16[] pMaskAxNo, Int16 lookAheadLen, double estopDec);
         //获取插补坐标系参数
         [DllImport(EtherCATConfigApiDllName, EntryPoint = "IMC_CrdGetMtSysParam", ExactSpelling = false, CallingConvention = CallingConvention.Cdecl)]
-        public static extern UInt32 IMC_CrdGetMtSysParam(HANDLETYPE cardHandle, Int16 crdNo, Int16[] pMaskAxNo, ref Int16 pLookAheadLen, ref double pEstopDec);
+        public static extern UInt32 IMC_CrdGetMtSysParam(HANDLETYPE cardHandle, Int16 crdNo, [Out, MarshalAs(UnmanagedType.LPArray, SizeConst = 3)] Int16[] pMaskAxNo, ref Int16 pLookAheadLen, ref double pEstopDec);
         //删除已经创建的插补坐标系
         [DllImport(EtherCATConfigApiDllName, EntryPoint = "IMC_CrdDeleteMtSys", ExactSpelling = false, CallingConvention = CallingConvention.Cdecl)]
         public static extern UInt32 IMC_CrdDeleteMtSys(HANDLETYPE cardHandle, Int16 crdNo);
@@ -1598,7 +1623,7 @@ namespace Inovance.InoMotionCotrollerShop.InoServiceContract.EtherCATConfigApi
 
         //3轴直线插补运动
         [DllImport(EtherCATConfigApiDllName, EntryPoint = "IMC_CrdLineXYZ", ExactSpelling = false, CallingConvention = CallingConvention.Cdecl)]
-        public static extern UInt32 IMC_CrdLineXYZ(HANDLETYPE cardHandle, Int16 crdNo, double[] pEndPos, Int32 userID = 0);
+        public static extern UInt32 IMC_CrdLineXYZ(HANDLETYPE cardHandle, Int16 crdNo, [In, MarshalAs(UnmanagedType.LPArray, SizeConst = 3)] double[] pEndPos, Int32 userID = 0);
         //3轴直线插补运动(拓展指令)
         [DllImport(EtherCATConfigApiDllName, EntryPoint = "IMC_CrdLineXYZEx", ExactSpelling = false, CallingConvention = CallingConvention.Cdecl)]
         public static extern UInt32 IMC_CrdLineXYZEx(HANDLETYPE cardHandle, Int16 crdNo, double[] pEndPos, Int32 userID = 0);
@@ -1634,13 +1659,13 @@ namespace Inovance.InoMotionCotrollerShop.InoServiceContract.EtherCATConfigApi
         //圆心终点编程
         //XY平面内圆心末点编程；Z轴不作圆周运动
         [DllImport(EtherCATConfigApiDllName, EntryPoint = "IMC_CrdArcCenterXYPlane", ExactSpelling = false, CallingConvention = CallingConvention.Cdecl)]
-        public static extern UInt32 IMC_CrdArcCenterXYPlane(HANDLETYPE cardHandle, Int16 crdNo, double[] pCenter, double[] pEndPos, Int16 dir, double height = 0, Int32 turn = 0, Int32 userID = 0);
+        public static extern UInt32 IMC_CrdArcCenterXYPlane(HANDLETYPE cardHandle, Int16 crdNo, [In, MarshalAs(UnmanagedType.LPArray, SizeConst = 2)] double[] pCenter, [In, MarshalAs(UnmanagedType.LPArray, SizeConst = 2)] double[] pEndPos, Int16 dir, double height = 0, Int32 turn = 0, Int32 userID = 0);
         //YZ平面内圆心末点编程；X轴不作圆周运动
         [DllImport(EtherCATConfigApiDllName, EntryPoint = "IMC_CrdArcCenterYZPlane", ExactSpelling = false, CallingConvention = CallingConvention.Cdecl)]
-        public static extern UInt32 IMC_CrdArcCenterYZPlane(HANDLETYPE cardHandle, Int16 crdNo, double[] pCenter, double[] pEndPos, Int16 dir, double height = 0, Int32 turn = 0, Int32 userID = 0);
+        public static extern UInt32 IMC_CrdArcCenterYZPlane(HANDLETYPE cardHandle, Int16 crdNo, [In, MarshalAs(UnmanagedType.LPArray, SizeConst = 2)] double[] pCenter, [In, MarshalAs(UnmanagedType.LPArray, SizeConst = 2)] double[] pEndPos, Int16 dir, double height = 0, Int32 turn = 0, Int32 userID = 0);
         //ZX平面内圆心末点编程；Y轴不作圆周运动
         [DllImport(EtherCATConfigApiDllName, EntryPoint = "IMC_CrdArcCenterZXPlane", ExactSpelling = false, CallingConvention = CallingConvention.Cdecl)]
-        public static extern UInt32 IMC_CrdArcCenterZXPlane(HANDLETYPE cardHandle, Int16 crdNo, double[] pCenter, double[] pEndPos, Int16 dir, double height = 0, Int32 turn = 0, Int32 userID = 0);
+        public static extern UInt32 IMC_CrdArcCenterZXPlane(HANDLETYPE cardHandle, Int16 crdNo, [In, MarshalAs(UnmanagedType.LPArray, SizeConst = 2)] double[] pCenter, [In, MarshalAs(UnmanagedType.LPArray, SizeConst = 2)] double[] pEndPos, Int16 dir, double height = 0, Int32 turn = 0, Int32 userID = 0);
         //半径终点编程
         //XY平面内半径末点编程；Z轴不作圆周运动
         [DllImport(EtherCATConfigApiDllName, EntryPoint = "IMC_CrdArcRadiusXYPlane", ExactSpelling = false, CallingConvention = CallingConvention.Cdecl)]
@@ -1703,14 +1728,16 @@ namespace Inovance.InoMotionCotrollerShop.InoServiceContract.EtherCATConfigApi
         [DllImport(EtherCATConfigApiDllName, EntryPoint = "IMC_CrdWaitInPos", ExactSpelling = false, CallingConvention = CallingConvention.Cdecl)]
         public static extern UInt32 IMC_CrdWaitInPos(HANDLETYPE cardHandle, Int16 crdNo, Int32 userID = 0);
         //插补缓存区多轴同步运动
-        [DllImport(EtherCATConfigApiDllName, EntryPoint = "IMC_CrdMultiSyncMove", ExactSpelling = false, CallingConvention = CallingConvention.Cdecl)]
-        public static extern UInt32 IMC_CrdMultiSyncMove(HANDLETYPE cardHandle, Int16 crdNo, Int16 axNum, Int16[] pAxNo, double[] pTgtPos, double tgtVel, double tgtAcc, Int16 contiFlag);
+        [Obsolete("该八参数重载与原厂 C++ 的九参数入口冲突；禁止调用缺少 userID 的旧声明。", true)]
+        public static UInt32 IMC_CrdMultiSyncMove(HANDLETYPE cardHandle, Int16 crdNo, Int16 axNum, Int16[] pAxNo, double[] pTgtPos, double tgtVel, double tgtAcc, Int16 contiFlag)
+            => throw new NotSupportedException("八参数同步运动旧重载没有完整 ABI 依据，已禁止进入原生库。");
         //往DSP队列发送PC部分的队列数据
         [DllImport(EtherCATConfigApiDllName, EntryPoint = "IMC_CrdEndData", ExactSpelling = false, CallingConvention = CallingConvention.Cdecl)]
         public static extern UInt32 IMC_CrdEndData(HANDLETYPE cardHandle, Int16 crdNo, ref Int16 pIsFinished);
         //往DSP队列发送PC部分的队列数据
-        [DllImport(EtherCATConfigApiDllName, EntryPoint = "IMC_CrdEndDataEx", ExactSpelling = false, CallingConvention = CallingConvention.Cdecl)]
-        public static extern UInt32 IMC_CrdEndDataEx(HANDLETYPE cardHandle, Int16 crdNo, ref Int16 pIsFinished, ref Int16 pSeg);
+        [Obsolete("原厂 C++ 末参是 INT16 值，旧 C# 为 ref 指针；请使用已核对的普通 EndData 协议。", true)]
+        public static UInt32 IMC_CrdEndDataEx(HANDLETYPE cardHandle, Int16 crdNo, ref Int16 pIsFinished, ref Int16 pSeg)
+            => throw new NotSupportedException("EndDataEx 旧声明存在值/指针冲突，已禁止进入原生库。");
 
         //启动插补运动
         [DllImport(EtherCATConfigApiDllName, EntryPoint = "IMC_CrdStart", ExactSpelling = false, CallingConvention = CallingConvention.Cdecl)]
@@ -1729,7 +1756,7 @@ namespace Inovance.InoMotionCotrollerShop.InoServiceContract.EtherCATConfigApi
         public static extern UInt32 IMC_CrdGetRatio(HANDLETYPE cardHandle, Int16 crdNo, ref double pRatio);
         //当前插补坐标系坐标读取函数
         [DllImport(EtherCATConfigApiDllName, EntryPoint = "IMC_CrdGetPos", ExactSpelling = false, CallingConvention = CallingConvention.Cdecl)]
-        public static extern UInt32 IMC_CrdGetPos(HANDLETYPE cardHandle, Int16 crdNo, double[] pCrdPos);
+        public static extern UInt32 IMC_CrdGetPos(HANDLETYPE cardHandle, Int16 crdNo, [Out, MarshalAs(UnmanagedType.LPArray, SizeConst = 3)] double[] pCrdPos);
         //插补轨迹速度读取函数
         [DllImport(EtherCATConfigApiDllName, EntryPoint = "IMC_CrdGetVel", ExactSpelling = false, CallingConvention = CallingConvention.Cdecl)]
         public static extern UInt32 IMC_CrdGetVel(HANDLETYPE cardHandle, Int16 crdNo, ref double pCrdVel);
@@ -1756,10 +1783,10 @@ namespace Inovance.InoMotionCotrollerShop.InoServiceContract.EtherCATConfigApi
         public static extern UInt32 IMC_CrdClrError(HANDLETYPE cardHandle, Int16 crdNo);
         //获取插补目标位置
         [DllImport(EtherCATConfigApiDllName, EntryPoint = "IMC_CrdGetTargetPos", ExactSpelling = false, CallingConvention = CallingConvention.Cdecl)]
-        public static extern UInt32 IMC_CrdGetTargetPos(HANDLETYPE cardHandle, Int16 crdNo, double[] pPos);
+        public static extern UInt32 IMC_CrdGetTargetPos(HANDLETYPE cardHandle, Int16 crdNo, [Out, MarshalAs(UnmanagedType.LPArray, SizeConst = 3)] double[] pPos);
         //获取插补暂停的位置
         [DllImport(EtherCATConfigApiDllName, EntryPoint = "IMC_CrdGetPausePos", ExactSpelling = false, CallingConvention = CallingConvention.Cdecl)]
-        public static extern UInt32 IMC_CrdGetPausePos(HANDLETYPE cardHandle, Int16 crdNo, double[] pPos);
+        public static extern UInt32 IMC_CrdGetPausePos(HANDLETYPE cardHandle, Int16 crdNo, [Out, MarshalAs(UnmanagedType.LPArray, SizeConst = 3)] double[] pPos);
         //获取插补运动最后一段到位状态标志
         [DllImport(EtherCATConfigApiDllName, EntryPoint = "IMC_CrdGetArrivalSts", ExactSpelling = false, CallingConvention = CallingConvention.Cdecl)]
         public static extern UInt32 IMC_CrdGetArrivalSts(HANDLETYPE cardHandle, Int16 crdNo, ref Int16 pSts);
@@ -1783,8 +1810,9 @@ namespace Inovance.InoMotionCotrollerShop.InoServiceContract.EtherCATConfigApi
         public static extern UInt32 IMC_MultiLineMove(HANDLETYPE cardHandle, Int16 groupNo, double[] pEndPos, double trajVel, double trajAcc, double trajdec, short blendType, double blendRatio, int userID = 0);
 
         //多轴插补DO输入
-        [DllImport(EtherCATConfigApiDllName, EntryPoint = "IMC_MultiSetDO", ExactSpelling = false, CallingConvention = CallingConvention.Cdecl)]
-        public static extern UInt32 IMC_MultiSetDO(HANDLETYPE cardHandle, Int16 groupNo, Int16 doIndex, Int16 doType, Int16 doLevel, Int32 waitTime, Int32 userID = 0);
+        [Obsolete("原厂 C++ 为六参数，旧 C# 多出的 waitTime 会错占 userID；配套 ABI 确认前禁止调用。", true)]
+        public static UInt32 IMC_MultiSetDO(HANDLETYPE cardHandle, Int16 groupNo, Int16 doIndex, Int16 doType, Int16 doLevel, Int32 waitTime, Int32 userID = 0)
+            => throw new NotSupportedException("多轴 DO 旧声明参数错位，已禁止进入原生库。");
 
         //多轴插补TimeDO输入
         [DllImport(EtherCATConfigApiDllName, EntryPoint = "IMC_MultiSetTimeDO", ExactSpelling = false, CallingConvention = CallingConvention.Cdecl)]
@@ -2088,8 +2116,11 @@ namespace Inovance.InoMotionCotrollerShop.InoServiceContract.EtherCATConfigApi
         [DllImport(EtherCATConfigApiDllName, EntryPoint = "IMC_GetFactoryCode", ExactSpelling = false, CallingConvention = CallingConvention.Cdecl)]
         public static extern UInt32 IMC_GetFactoryCode(HANDLETYPE cardHandle, string pCode);
         // 获取整个系统版本号
-        [DllImport(EtherCATConfigApiDllName, EntryPoint = "IMC_GetImcCardVersion", ExactSpelling = false, CallingConvention = CallingConvention.Cdecl)]
-        public static extern UInt32 IMC_GetImcCardVersion(HANDLETYPE cardHandle, UInt16 type, string pVersion);
+        // 原厂 char* 是可写输出，不能封送成不可变 string。资料也未提供长度参数或输出上限；
+        // 单纯换成任意容量的 StringBuilder 仍无法证明原生写入有界，故先隔离该旧入口。
+        [Obsolete("版本号为原生可写字符串，旧 string 声明错误且输出上限未确认；禁止调用。", true)]
+        public static UInt32 IMC_GetImcCardVersion(HANDLETYPE cardHandle, UInt16 type, string pVersion)
+            => throw new NotSupportedException("版本号输出缓冲契约未确认，已禁止旧 string 声明进入原生库。");
         // 获取板卡资源(V1.11.1.0及以上固件)
         [DllImport(EtherCATConfigApiDllName, EntryPoint = "IMC_GetResCount", ExactSpelling = false, CallingConvention = CallingConvention.Cdecl)]
         public static extern UInt32 IMC_GetResCount(HANDLETYPE cardHandle, Int16 type, ref Int16 pResCountValue);

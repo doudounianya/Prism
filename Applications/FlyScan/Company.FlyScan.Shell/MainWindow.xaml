@@ -1,0 +1,88 @@
+<Window x:Class="Company.FlyScan.Shell.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:hmi="clr-namespace:Company.Hmi.Presentation;assembly=Company.Hmi.Presentation"
+        xmlns:local="clr-namespace:Company.FlyScan.Shell"
+        Title="飞拍 · 仿真" Width="1500" Height="980" MinWidth="820" MinHeight="560"
+        Background="#F0F5FB" FontFamily="Segoe UI, Microsoft YaHei">
+    <Window.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="/Company.Hmi.Presentation;component/SettingsPageStyles.xaml"/>
+            </ResourceDictionary.MergedDictionaries>
+            <ControlTemplate x:Key="PageContent" TargetType="TabControl">
+                <ContentPresenter x:Name="PART_SelectedContentHost" ContentSource="SelectedContent"/>
+            </ControlTemplate>
+        </ResourceDictionary>
+    </Window.Resources>
+    <DockPanel>
+        <Border DockPanel.Dock="Top" Padding="20,12" Background="White" BorderBrush="#DAE5F1" BorderThickness="0,0,0,1">
+            <WrapPanel VerticalAlignment="Center">
+                <TextBlock Margin="0,0,18,0" VerticalAlignment="Center" Foreground="#173D6B" FontSize="19"
+                           FontWeight="SemiBold" Text="飞拍 · 仿真" />
+                <TextBlock Margin="0,0,6,0" VerticalAlignment="Center" Text="仿真身份" />
+                <ComboBox x:Name="SimulationRole" Width="112" Margin="0,0,14,0" DisplayMemberPath="Name" SelectionChanged="RoleChanged" />
+                <TextBlock Margin="0,0,6,0" VerticalAlignment="Center" Text="模拟反馈" />
+                <ComboBox x:Name="SimulationMode" Width="104" Margin="0,0,6,0" DisplayMemberPath="Name" />
+                <ComboBox x:Name="SimulationStatus" Width="92" Margin="0,0,8,0" DisplayMemberPath="Name" />
+                <Button Margin="0,0,6,0" Padding="9,4" Content="应用反馈" Click="ApplyFeedbackClicked" />
+                <Button Margin="0,0,6,0" Padding="9,4" Content="反馈未知" Click="LoseFeedbackClicked" />
+                <Button Margin="0,0,14,0" Padding="9,4" Content="初始化完成" Click="CompleteInitializationClicked" />
+                <Button Margin="0,0,6,0" Padding="9,4" Content="模拟断开" Click="DisconnectClicked" />
+                <Button Padding="9,4" Content="模拟重连" Click="ReconnectClicked" />
+            </WrapPanel>
+        </Border>
+        <TabControl x:Name="Pages">
+            <TabItem x:Name="DeviceTab" Header="设备监控"><hmi:DeviceMonitorView x:Name="DevicePage"/></TabItem>
+            <TabItem x:Name="ModeTab" Header="模式控制"><hmi:ModeControlView x:Name="ModePage" /></TabItem>
+            <TabItem x:Name="IoTab" Header="IO监控"><hmi:IoMonitorView x:Name="IoPage" /></TabItem>
+            <TabItem x:Name="ParametersTab" Header="参数设置">
+                <TabControl x:Name="ParameterPages" Template="{StaticResource PageContent}">
+                    <TabItem x:Name="AxisTab"><hmi:AxisParameterView x:Name="AxisPage"/></TabItem>
+                    <TabItem x:Name="CylinderTab"><hmi:CylinderParameterView x:Name="CylinderPage"/></TabItem>
+                </TabControl>
+            </TabItem>
+            <TabItem x:Name="AlarmsTab" Header="报警监控">
+                <TabControl x:Name="AlarmPages" Template="{StaticResource PageContent}">
+                    <TabItem x:Name="RealtimeTab"><hmi:RealtimeAlarmView x:Name="RealtimePage"/></TabItem>
+                    <TabItem x:Name="AlarmHistoryTab"><hmi:AlarmHistoryView x:Name="AlarmHistoryPage"/></TabItem>
+                    <TabItem x:Name="AlarmAnalysisTab"><hmi:AlarmAnalysisView x:Name="AlarmAnalysisPage"/></TabItem>
+                </TabControl>
+            </TabItem>
+            <TabItem x:Name="ProductionTab" Header="生产数据">
+                <TabControl x:Name="ProductionPages" Template="{StaticResource PageContent}">
+                    <TabItem x:Name="TodayTab"><hmi:ProductionTodayView x:Name="TodayPage"/></TabItem>
+                    <TabItem x:Name="DailyTab"><hmi:ProductionDailyView x:Name="DailyPage"/></TabItem>
+                    <TabItem x:Name="TrendTab"><hmi:ProductionTrendView x:Name="TrendPage"/></TabItem>
+                </TabControl>
+            </TabItem>
+            <TabItem x:Name="FlyScanTab" Header="工艺参数">
+                <hmi:ProcessWorkspace><local:FlyScanPage x:Name="ScanPage"/></hmi:ProcessWorkspace>
+            </TabItem>
+            <TabItem x:Name="LogTab" Header="操作日志"><hmi:OperationLogView x:Name="LogPage"/></TabItem>
+            <TabItem x:Name="MesTab" Header="MES接口" IsEnabled="False" ToolTip="当前机型未配置 MES 接口"/>
+            <TabItem x:Name="SettingsTab" Header="系统设置">
+                <hmi:SettingsPage x:Name="FlySettings" MaxWidth="900" HorizontalAlignment="Left">
+                    <hmi:SettingsPage.SoftwareContent>
+                        <Border Style="{StaticResource SettingsCard}">
+                            <StackPanel>
+                                <TextBlock Text="软件名称" FontWeight="SemiBold"/>
+                                <TextBlock Text="飞拍 · 仿真" Margin="0,6,0,16"/>
+                                <TextBlock Text="历史数据目录" FontWeight="SemiBold"/>
+                                <TextBlock Text="{Binding HistoryLocation}" TextWrapping="Wrap" Margin="0,6,0,0"/>
+                            </StackPanel>
+                        </Border>
+                    </hmi:SettingsPage.SoftwareContent>
+                    <hmi:SettingsPage.AccountContent>
+                        <Border Style="{StaticResource SettingsCard}">
+                            <StackPanel>
+                                <TextBlock Text="当前仿真身份" FontWeight="SemiBold"/>
+                                <TextBlock Text="{Binding Actor}" Margin="0,6,0,0"/>
+                            </StackPanel>
+                        </Border>
+                    </hmi:SettingsPage.AccountContent>
+                </hmi:SettingsPage>
+            </TabItem>
+        </TabControl>
+    </DockPanel>
+</Window>

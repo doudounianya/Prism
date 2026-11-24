@@ -2,32 +2,16 @@
   <PropertyGroup>
     <TargetFramework>net8.0-windows</TargetFramework>
     <Nullable>enable</Nullable>
-    <UseWPF>true</UseWPF>
     <ImplicitUsings>enable</ImplicitUsings>
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="Prism.DryIoc" Version="9.0.537" />
-    <PackageReference Include="ReactiveUI" Version="22.3.1" />
-    <PackageReference Include="ReactiveUI.SourceGenerators" Version="2.5.1">
-      <PrivateAssets>all</PrivateAssets>
-      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
-    </PackageReference>
-  </ItemGroup>
-  <ItemGroup>
-    <ProjectReference Include="..\..\Company.Core\Company.Core.csproj" />
     <ProjectReference Include="..\Company.Hardware.ControlCard\Company.Hardware.ControlCard.csproj" />
-    <ProjectReference Include="..\..\Company.Logger\Company.Logger.csproj" />
+    <ProjectReference Include="..\..\Framework\Company.Logger\Company.Logger.csproj" />
   </ItemGroup>
-  <Target Name="DeployControlCardModule" AfterTargets="Build" Condition="'$(SkipModuleDeployment)' != 'true'">
-    <PropertyGroup>
-      <ControlCardShellRoot>$(MSBuildProjectDirectory)\..\..\Shell\bin\$(Configuration)\$(TargetFramework)\</ControlCardShellRoot>
-    </PropertyGroup>
-    <MakeDir Directories="$(ControlCardShellRoot)Modules" />
-    <Copy SourceFiles="$(TargetPath)" DestinationFolder="$(ControlCardShellRoot)Modules" SkipUnchangedFiles="true" />
-    <MakeDir Directories="$(ControlCardShellRoot)runtimes\win-x64\native" />
-    <Copy SourceFiles="$(MSBuildProjectDirectory)\dll\IMC_API_x64.dll" DestinationFolder="$(ControlCardShellRoot)runtimes\win-x64\native" SkipUnchangedFiles="true" />
-  </Target>
   <ItemGroup>
     <Content Include="dll\IMC_API_x64.dll" Link="runtimes\win-x64\native\IMC_API_x64.dll" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
   </ItemGroup>
+  <PropertyGroup>
+    <PrismNativeLibrary>dll\IMC_API_x64.dll</PrismNativeLibrary>
+  </PropertyGroup>
 </Project>

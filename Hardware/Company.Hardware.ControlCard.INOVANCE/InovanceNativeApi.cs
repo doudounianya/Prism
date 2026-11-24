@@ -1,0 +1,73 @@
+using Inovance.InoMotionCotrollerShop.InoServiceContract.EtherCATConfigApi;
+using System.Text;
+
+namespace Company.Hardware.ControlCard.INOVANCE;
+
+/// <summary>原生转发不缓存状态、不初始化设备；只有现有显式 Init/操作入口通过校验后才会调用。</summary>
+internal sealed class InovanceNativeApi : IInovanceApi
+{
+    public uint IMC_AxMoveStop(ulong cardHandle, Int16 axNo, Int16 stopType) => ImcApi.IMC_AxMoveStop(cardHandle, axNo, stopType);
+    public uint IMC_AxServoOff(ulong cardHandle, Int16 axNo, Int16 count = 1) => ImcApi.IMC_AxServoOff(cardHandle, axNo, count);
+    public uint IMC_AxServoOn(ulong cardHandle, Int16 axNo, Int16 count = 1) => ImcApi.IMC_AxServoOn(cardHandle, axNo, count);
+    public uint IMC_CloseCardHandle(ulong cardHandle) => ImcApi.IMC_CloseCardHandle(cardHandle);
+    public uint IMC_ClrAxSts(ulong cardHandle, Int16 axNo, Int16 count = 1) => ImcApi.IMC_ClrAxSts(cardHandle, axNo, count);
+    public uint IMC_CrdArcCenterXYPlane(ulong cardHandle, Int16 crdNo, double[] pCenter, double[] pEndPos, Int16 dir, double height = 0, Int32 turn = 0, Int32 userID = 0) => ImcApi.IMC_CrdArcCenterXYPlane(cardHandle, crdNo, pCenter, pEndPos, dir, height, turn, userID);
+    public uint IMC_CrdArcCenterYZPlane(ulong cardHandle, Int16 crdNo, double[] pCenter, double[] pEndPos, Int16 dir, double height = 0, Int32 turn = 0, Int32 userID = 0) => ImcApi.IMC_CrdArcCenterYZPlane(cardHandle, crdNo, pCenter, pEndPos, dir, height, turn, userID);
+    public uint IMC_CrdArcCenterZXPlane(ulong cardHandle, Int16 crdNo, double[] pCenter, double[] pEndPos, Int16 dir, double height = 0, Int32 turn = 0, Int32 userID = 0) => ImcApi.IMC_CrdArcCenterZXPlane(cardHandle, crdNo, pCenter, pEndPos, dir, height, turn, userID);
+    public uint IMC_CrdClrData(ulong cardHandle, Int16 crdNo) => ImcApi.IMC_CrdClrData(cardHandle, crdNo);
+    public uint IMC_CrdClrError(ulong cardHandle, Int16 crdNo) => ImcApi.IMC_CrdClrError(cardHandle, crdNo);
+    public uint IMC_CrdDeleteMtSys(ulong cardHandle, Int16 crdNo) => ImcApi.IMC_CrdDeleteMtSys(cardHandle, crdNo);
+    public uint IMC_CrdEndData(ulong cardHandle, Int16 crdNo, ref Int16 pIsFinished) => ImcApi.IMC_CrdEndData(cardHandle, crdNo, ref pIsFinished);
+    public uint IMC_CrdGetAdvParam(ulong cardHandle, Int16 crdNo, ref ImcApi.TCrdAdvParam pCrdAdvParam) => ImcApi.IMC_CrdGetAdvParam(cardHandle, crdNo, ref pCrdAdvParam);
+    public uint IMC_CrdGetArrivalSts(ulong cardHandle, Int16 crdNo, ref Int16 pSts) => ImcApi.IMC_CrdGetArrivalSts(cardHandle, crdNo, ref pSts);
+    public uint IMC_CrdGetIncMode(ulong cardHandle, Int16 crdNo, ref Int16 pMode) => ImcApi.IMC_CrdGetIncMode(cardHandle, crdNo, ref pMode);
+    public uint IMC_CrdGetMtSysParam(ulong cardHandle, Int16 crdNo, Int16[] pMaskAxNo, ref Int16 pLookAheadLen, ref double pEstopDec) => ImcApi.IMC_CrdGetMtSysParam(cardHandle, crdNo, pMaskAxNo, ref pLookAheadLen, ref pEstopDec);
+    public uint IMC_CrdGetPausePos(ulong cardHandle, Int16 crdNo, double[] pPos) => ImcApi.IMC_CrdGetPausePos(cardHandle, crdNo, pPos);
+    public uint IMC_CrdGetPos(ulong cardHandle, Int16 crdNo, double[] pCrdPos) => ImcApi.IMC_CrdGetPos(cardHandle, crdNo, pCrdPos);
+    public uint IMC_CrdGetSpace(ulong cardHandle, Int16 crdNo, ref Int32 pSpace) => ImcApi.IMC_CrdGetSpace(cardHandle, crdNo, ref pSpace);
+    public uint IMC_CrdGetStatus(ulong cardHandle, Int16 crdNo, ref Int16 pStatus) => ImcApi.IMC_CrdGetStatus(cardHandle, crdNo, ref pStatus);
+    public uint IMC_CrdLineXYZ(ulong cardHandle, Int16 crdNo, double[] pEndPos, Int32 userID = 0) => ImcApi.IMC_CrdLineXYZ(cardHandle, crdNo, pEndPos, userID);
+    public uint IMC_CrdSetAdvParam(ulong cardHandle, Int16 crdNo, ref ImcApi.TCrdAdvParam pCrdAdvParam) => ImcApi.IMC_CrdSetAdvParam(cardHandle, crdNo, ref pCrdAdvParam);
+    public uint IMC_CrdSetIncMode(ulong cardHandle, Int16 crdNo, Int16 mode) => ImcApi.IMC_CrdSetIncMode(cardHandle, crdNo, mode);
+    public uint IMC_CrdSetMtSys(ulong cardHandle, Int16 crdNo, Int16[] pMaskAxNo, Int16 lookAheadLen, double estopDec) => ImcApi.IMC_CrdSetMtSys(cardHandle, crdNo, pMaskAxNo, lookAheadLen, estopDec);
+    public uint IMC_CrdSetRatio(ulong cardHandle, Int16 crdNo, double ratio) => ImcApi.IMC_CrdSetRatio(cardHandle, crdNo, ratio);
+    public uint IMC_CrdSetTrajAccAndDec(ulong cardHandle, Int16 crdNo, double tgtAcc, double tgtdec) => ImcApi.IMC_CrdSetTrajAccAndDec(cardHandle, crdNo, tgtAcc, tgtdec);
+    public uint IMC_CrdSetTrajVel(ulong cardHandle, Int16 crdNo, double tgtVel) => ImcApi.IMC_CrdSetTrajVel(cardHandle, crdNo, tgtVel);
+    public uint IMC_CrdSetZeroFlag(ulong cardHandle, Int16 crdNo, Int16 ZeroFlag) => ImcApi.IMC_CrdSetZeroFlag(cardHandle, crdNo, ZeroFlag);
+    public uint IMC_CrdStart(ulong cardHandle, Int16 crdNo) => ImcApi.IMC_CrdStart(cardHandle, crdNo);
+    public uint IMC_CrdStop(ulong cardHandle, Int16 crdNo, Int16 stopType) => ImcApi.IMC_CrdStop(cardHandle, crdNo, stopType);
+    public uint IMC_DownLoadDeviceConfig(ulong cardHandle, string pathName) => ImcApi.IMC_DownLoadDeviceConfig(cardHandle, pathName);
+    public uint IMC_DownLoadSystemConfig(ulong cardHandle, string pathName) => ImcApi.IMC_DownLoadSystemConfig(cardHandle, pathName);
+    public uint IMC_FinishHoming(ulong cardHandle, Int16 axNo) => ImcApi.IMC_FinishHoming(cardHandle, axNo);
+    public uint IMC_GetAxEncAcc(ulong cardHandle, Int16 axNo, double[] pEncAcc, Int16 count = 1) => ImcApi.IMC_GetAxEncAcc(cardHandle, axNo, pEncAcc, count);
+    public uint IMC_GetAxEncPos(ulong cardHandle, Int16 axNo, double[] pEncPos, Int16 count = 1) => ImcApi.IMC_GetAxEncPos(cardHandle, axNo, pEncPos, count);
+    public uint IMC_GetAxEncVel(ulong cardHandle, Int16 axNo, double[] pEncVel, Int16 count = 1) => ImcApi.IMC_GetAxEncVel(cardHandle, axNo, pEncVel, count);
+    public uint IMC_GetAxEquiv(ulong cardHandle, Int16 axNo, double[] pAxEquArray, Int16 count = 1) => ImcApi.IMC_GetAxEquiv(cardHandle, axNo, pAxEquArray, count);
+    public uint IMC_GetAxPrfAcc(ulong cardHandle, Int16 axNo, double[] pPrfAcc, Int16 count = 1) => ImcApi.IMC_GetAxPrfAcc(cardHandle, axNo, pPrfAcc, count);
+    public uint IMC_GetAxPrfPos(ulong cardHandle, Int16 axNo, double[] pPrfPos, Int16 count = 1) => ImcApi.IMC_GetAxPrfPos(cardHandle, axNo, pPrfPos, count);
+    public uint IMC_GetAxPrfVel(ulong cardHandle, Int16 axNo, double[] pPrfVel, Int16 count = 1) => ImcApi.IMC_GetAxPrfVel(cardHandle, axNo, pPrfVel, count);
+    public uint IMC_GetAxSts(ulong cardHandle, Int16 axNo, Int32[] pAxSts, Int16 count = 1) => ImcApi.IMC_GetAxSts(cardHandle, axNo, pAxSts, count);
+    public uint IMC_GetAxType(ulong cardHandle, Int16 axNo, ref Int16 pAxType, ref Int16 pOutChn) => ImcApi.IMC_GetAxType(cardHandle, axNo, ref pAxType, ref pOutChn);
+    public uint IMC_GetCardResource(ulong cardHandle, ref ImcApi.TRsouresNum pRsouresNum) => ImcApi.IMC_GetCardResource(cardHandle, ref pRsouresNum);
+    public uint IMC_GetCardsNum(ref Int32 cardsNum) => ImcApi.IMC_GetCardsNum(ref cardsNum);
+    public uint IMC_GetECATMasterSts(ulong cardHandle, ref UInt32 pStatus) => ImcApi.IMC_GetECATMasterSts(cardHandle, ref pStatus);
+    public uint IMC_GetEcatPackDi(ulong cardHandle, Int16 startGrpNo, Int16[] pValue, Int16 grpCnt) => ImcApi.IMC_GetEcatPackDi(cardHandle, startGrpNo, pValue, grpCnt);
+    public uint IMC_GetEcatPackDo(ulong cardHandle, Int16 startGrpNo, Int16[] pValue, Int16 grpCnt) => ImcApi.IMC_GetEcatPackDo(cardHandle, startGrpNo, pValue, grpCnt);
+    public uint IMC_GetHomingStatus(ulong cardHandle, Int16 axNo, ref Int16 pStatus) => ImcApi.IMC_GetHomingStatus(cardHandle, axNo, ref pStatus);
+    public uint IMC_GetHwSysPara(ulong cardHandle, ref Int16 pCycleTime, ref Int16 pHwType) => ImcApi.IMC_GetHwSysPara(cardHandle, ref pCycleTime, ref pHwType);
+    public uint IMC_OpenCardHandle(Int32 cardNo, ref ulong pCardHandle) => ImcApi.IMC_OpenCardHandle(cardNo, ref pCardHandle);
+    public uint IMC_PauseMove(ulong cardHandle, Int16 axNo) => ImcApi.IMC_PauseMove(cardHandle, axNo);
+    public uint IMC_ResumeMove(ulong cardHandle, Int16 axNo) => ImcApi.IMC_ResumeMove(cardHandle, axNo);
+    public uint IMC_ScanCardECAT(ulong cardHandle, Int32 blockFlag) => ImcApi.IMC_ScanCardECAT(cardHandle, blockFlag);
+    public uint IMC_SetAxEquiv(ulong cardHandle, Int16 axNo, double[] pAxEquArray, Int16 count = 1) => ImcApi.IMC_SetAxEquiv(cardHandle, axNo, pAxEquArray, count);
+    public uint IMC_SetEcatDoBit(ulong cardHandle, Int16 doNo, Int16 Value) => ImcApi.IMC_SetEcatDoBit(cardHandle, doNo, Value);
+    public uint IMC_SetEmgTrigLevelInv(ulong cardHandle, Int16 inverse) => ImcApi.IMC_SetEmgTrigLevelInv(cardHandle, inverse);
+    public uint IMC_SetSingleAxMvPara(ulong cardHandle, Int16 axNo, double vel, double acc, double dec) => ImcApi.IMC_SetSingleAxMvPara(cardHandle, axNo, vel, acc, dec);
+    public uint IMC_StartHomingInUnit(ulong cardHandle, Int16 axNo, ref ImcApi.THomingParaInUint pHomingPara) => ImcApi.IMC_StartHomingInUnit(cardHandle, axNo, ref pHomingPara);
+    public uint IMC_StartJogMove(ulong cardHandle, Int16 axNo, double tgVel) => ImcApi.IMC_StartJogMove(cardHandle, axNo, tgVel);
+    public uint IMC_StartPtpMove(ulong cardHandle, Int16 axNo, double tgtPos, Int16 posType = 0) => ImcApi.IMC_StartPtpMove(cardHandle, axNo, tgtPos, posType);
+    public uint IMC_GetAxBondCfg(ulong cardHandle, short axNo, ref short pAxType, ref short pOutputChn, ref short pLocalEncSrc) => ImcApi.IMC_GetAxBondCfg(cardHandle, axNo, ref pAxType, ref pOutputChn, ref pLocalEncSrc);
+    public uint IMC_CrdGetRatio(ulong cardHandle, short crdNo, ref double pRatio) => ImcApi.IMC_CrdGetRatio(cardHandle, crdNo, ref pRatio);
+    public uint IMC_CrdGetTrajVel(ulong cardHandle, short crdNo, ref double pTgtVel) => ImcApi.IMC_CrdGetTrajVel(cardHandle, crdNo, ref pTgtVel);
+    public uint IMC_CrdGetTrajAccAndDec(ulong cardHandle, short crdNo, ref double pTgtAcc, ref double pTgtDec) => ImcApi.IMC_CrdGetTrajAccAndDec(cardHandle, crdNo, ref pTgtAcc, ref pTgtDec);
+}

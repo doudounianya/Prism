@@ -1,0 +1,27 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Prism.DryIoc" Version="9.0.537" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="../../../Hardware/Company.Hardware.ControlCard/Company.Hardware.ControlCard.csproj" />
+    <ProjectReference Include="../../../Hardware/Company.Hardware.ControlCard.None/Company.Hardware.ControlCard.None.csproj" />
+    <ProjectReference Include="../../../Hardware/Company.Hardware.ControlCard.INOVANCE/Company.Hardware.ControlCard.INOVANCE.csproj" />
+  </ItemGroup>
+  <PropertyGroup>
+    <DeployPrismModule>true</DeployPrismModule>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../../../Framework/Company.Desktop/Company.Desktop.csproj" />
+    <ProjectReference Include="../../../Framework/Company.Database.SqlSugar/Company.Database.SqlSugar.csproj" />
+    <ProjectReference Include="../Company.PlcHmi.Plc/Company.PlcHmi.Plc.csproj" />
+    <ProjectReference Include="../Company.PlcHmi.Persistence/Company.PlcHmi.Persistence.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="../../../Framework/Company.Platform.Services/Company.Platform.Services.csproj" />
+  </ItemGroup>
+</Project>

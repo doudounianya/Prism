@@ -1,0 +1,12 @@
+{
+  "profiles": {
+    "Company.PlcHmi.Shell": {
+      "commandName": "Project",
+      "environmentVariables": {
+        "CRT_HMI_PLC_WRITES": "0",
+        "CRT_HMI_ENABLE_ALARM_HISTORY": "0",
+        "CRT_HMI_ENABLE_CAPACITY_SYNC": "0"
+      }
+    }
+  }
+}

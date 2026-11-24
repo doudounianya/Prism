@@ -1,0 +1,8 @@
+<UserControl x:Class="Company.PlcHmi.Main.Views.OperationLogView"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:prism="http://prismlibrary.com/"
+    xmlns:hmi="clr-namespace:Company.Hmi.Presentation;assembly=Company.Hmi.Presentation"
+    prism:ViewModelLocator.AutoWireViewModel="True">
+    <hmi:OperationLogView x:Name="Page" />
+</UserControl>

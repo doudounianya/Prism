@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../Company.Platform.Shared/Company.Platform.Shared.csproj" />
+    <ProjectReference Include="../Company.Core/Company.Core.csproj" />
+    <ProjectReference Include="../Company.Database/Company.Database.csproj" />
+    <ProjectReference Include="../Company.Logger/Company.Logger.csproj" />
+  </ItemGroup>
+</Project>

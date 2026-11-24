@@ -1,0 +1,25 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Company.PlcHmi.Shared\Company.PlcHmi.Shared.csproj" />
+    <ProjectReference Include="..\..\..\Framework\Company.Core\Company.Core.csproj" />
+    <ProjectReference Include="..\..\..\Framework\Company.Logger\Company.Logger.csproj" />
+    <ProjectReference Include="..\..\..\Hardware\Company.Hardware.PLC.OpcUa\Company.Hardware.PLC.OpcUa.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\Framework\Company.Platform.Shared\Company.Platform.Shared.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <Using Include="Company.Platform.Shared.Login" />
+    <Using Include="Company.Platform.Shared.Model" />
+    <Using Include="Company.Platform.Shared.Events" />
+    <Using Include="Company.Platform.Shared.Config" />
+  </ItemGroup>
+  <ItemGroup>
+    <Using Include="Company.PlcHmi.Shared.Login" />
+  </ItemGroup>
+</Project>

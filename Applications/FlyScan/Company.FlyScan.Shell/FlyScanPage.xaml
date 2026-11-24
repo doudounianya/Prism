@@ -1,0 +1,149 @@
+<UserControl x:Class="Company.FlyScan.Shell.FlyScanPage"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <UserControl.Resources>
+        <Style TargetType="Button">
+            <Setter Property="Padding" Value="12,6" />
+            <Setter Property="Margin" Value="0,0,8,6" />
+            <Setter Property="Background" Value="White" />
+            <Setter Property="Foreground" Value="#153D68" />
+            <Setter Property="BorderBrush" Value="#BED2E9" />
+        </Style>
+        <Style x:Key="PrimaryButton" TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
+            <Setter Property="Background" Value="#1663CD" />
+            <Setter Property="Foreground" Value="White" />
+        </Style>
+        <Style TargetType="GroupBox">
+            <Setter Property="Padding" Value="12" />
+            <Setter Property="Margin" Value="0,0,0,10" />
+            <Setter Property="Background" Value="White" />
+            <Setter Property="BorderBrush" Value="#D5E2F0" />
+            <Setter Property="Foreground" Value="#153D68" />
+        </Style>
+        <Style TargetType="CheckBox">
+            <Setter Property="Margin" Value="0,0,16,7" />
+        </Style>
+        <Style TargetType="DataGrid">
+            <Setter Property="IsReadOnly" Value="True" />
+            <Setter Property="AutoGenerateColumns" Value="False" />
+            <Setter Property="CanUserAddRows" Value="False" />
+            <Setter Property="HeadersVisibility" Value="Column" />
+            <Setter Property="GridLinesVisibility" Value="Horizontal" />
+            <Setter Property="Background" Value="White" />
+            <Setter Property="AlternatingRowBackground" Value="#F6F9FC" />
+            <Setter Property="HorizontalGridLinesBrush" Value="#E2ECF7" />
+            <Setter Property="RowHeight" Value="28" />
+        </Style>
+    </UserControl.Resources>
+    <DockPanel Background="#F0F5FB" Margin="12">
+        <TextBlock x:Name="PageMessage" DockPanel.Dock="Bottom" Foreground="#1A568E"
+                   Padding="8,6" TextWrapping="Wrap" AutomationProperties.Name="飞拍操作结果" />
+        <TabControl x:Name="WorkTabs">
+            <TabItem Header="手动示教与配方">
+                <ScrollViewer VerticalScrollBarVisibility="Auto">
+                    <StackPanel Margin="12">
+                        <WrapPanel>
+                            <Button x:Name="NewRecipe" Content="新建配方" Click="NewClicked" />
+                            <Button Content="打开配方" Click="OpenClicked" />
+                            <Button Content="载入示例" Click="ExampleClicked" />
+                            <Button x:Name="SaveRecipe" Content="保存配方" Click="SaveClicked" />
+                            <Button Content="到轴参数页" Click="AxisClicked" />
+                        </WrapPanel>
+                        <GroupBox Header="当前配方">
+                            <WrapPanel>
+                                <TextBlock VerticalAlignment="Center" Margin="0,0,6,0" Text="配方名称" />
+                                <TextBox x:Name="RecipeName" Width="215" Margin="0,0,14,0" Padding="6,4" />
+                                <TextBlock VerticalAlignment="Center" Margin="0,0,6,0" Text="扫描组" />
+                                <ComboBox x:Name="GroupSelector" Width="90" Margin="0,0,14,0"
+                                          SelectionChanged="GroupChanged">
+                                    <ComboBoxItem Content="第一组" />
+                                    <ComboBoxItem Content="第二组" />
+                                </ComboBox>
+                                <TextBlock VerticalAlignment="Center" Margin="0,0,6,0" Text="机器人示教位" />
+                                <TextBox x:Name="RobotPose" Width="115" Padding="6,4" />
+                            </WrapPanel>
+                        </GroupBox>
+                        <GroupBox Header="记录 XYR1 坐标">
+                            <StackPanel>
+                                <TextBlock Margin="0,0,0,10" TextWrapping="Wrap"
+                                    Text="在轴参数页点动或定位，停稳后记录。每组第一点为扫描起点，可触发点按经过顺序添加。机器人示教器保存位置，本页只填位号。" />
+                                <WrapPanel>
+                                    <Button x:Name="WaypointButton" Content="记录轨迹点" Click="WaypointClicked" />
+                                    <Button x:Name="TriggerButton" Content="记录触发点" Click="TriggerClicked" />
+                                    <Button x:Name="RemovePoint" Content="删除末点" Click="RemoveClicked" />
+                                </WrapPanel>
+                                <DataGrid x:Name="Waypoints" Height="210" Margin="0,4,0,10">
+                                    <DataGrid.Columns>
+                                        <DataGridTextColumn Header="点位" Binding="{Binding Number}" Width="100" />
+                                        <DataGridTextColumn Header="X (mm)" Binding="{Binding Point.X, StringFormat=F4}" Width="*" />
+                                        <DataGridTextColumn Header="Y (mm)" Binding="{Binding Point.Y, StringFormat=F4}" Width="*" />
+                                        <DataGridTextColumn Header="R1 (°)" Binding="{Binding Point.R1, StringFormat=F4}" Width="*" />
+                                    </DataGrid.Columns>
+                                </DataGrid>
+                                <TextBlock Text="本组触发清单" Margin="0,0,0,6" FontWeight="SemiBold" />
+                                <DataGrid x:Name="TriggerTable" Height="150">
+                                    <DataGrid.Columns>
+                                        <DataGridTextColumn Header="触发点" Binding="{Binding Name}" Width="100" />
+                                        <DataGridTextColumn Header="段号" Binding="{Binding Segment}" Width="70" />
+                                        <DataGridTextColumn Header="X (mm)" Binding="{Binding Position.X, StringFormat=F4}" Width="*" />
+                                        <DataGridTextColumn Header="Y (mm)" Binding="{Binding Position.Y, StringFormat=F4}" Width="*" />
+                                        <DataGridTextColumn Header="R1 (°)" Binding="{Binding Position.R1, StringFormat=F4}" Width="*" />
+                                    </DataGrid.Columns>
+                                </DataGrid>
+                            </StackPanel>
+                        </GroupBox>
+                    </StackPanel>
+                </ScrollViewer>
+            </TabItem>
+            <TabItem Header="双组流程仿真">
+                <ScrollViewer VerticalScrollBarVisibility="Auto">
+                    <StackPanel Margin="12">
+                        <GroupBox Header="运行与恢复">
+                            <StackPanel>
+                                <WrapPanel>
+                                    <Button x:Name="StartButton" Content="开始双组扫描" Style="{StaticResource PrimaryButton}" Click="StartClicked" />
+                                    <Button x:Name="PauseButton" Content="暂停" Click="PauseClicked" />
+                                    <Button x:Name="StopButton" Content="停止" Click="StopClicked" />
+                                    <Button x:Name="CancelButton" Content="取消本次尝试" Click="CancelClicked" />
+                                    <Button x:Name="RecoverButton" Content="确认恢复" Click="RecoverClicked" />
+                                    <Button x:Name="StepButton" Content="单步" Click="StepClicked" />
+                                    <CheckBox x:Name="AutoStep" Content="自动步进" IsChecked="True" VerticalAlignment="Center" />
+                                </WrapPanel>
+                                <TextBlock x:Name="RunStatus" FontSize="17" FontWeight="SemiBold" Margin="0,4,0,5" TextWrapping="Wrap" />
+                                <TextBlock x:Name="RunCounts" TextWrapping="Wrap" />
+                            </StackPanel>
+                        </GroupBox>
+                        <GroupBox Header="仿真输入">
+                            <WrapPanel>
+                                <CheckBox x:Name="LoadedSignal" Content="上料确认" IsChecked="True" Click="SignalChanged" />
+                                <CheckBox x:Name="RobotSignal" Content="机器人到位并保持" IsChecked="True" Click="SignalChanged" />
+                                <CheckBox x:Name="ReadySignal" Content="视觉 Ready" IsChecked="True" Click="SignalChanged" />
+                                <CheckBox x:Name="UnloadedSignal" Content="下料确认" IsChecked="True" Click="SignalChanged" />
+                                <CheckBox x:Name="ConnectedSignal" Content="运动卡在线" IsChecked="True" Click="SignalChanged" />
+                                <CheckBox x:Name="AlarmSignal" Content="告警" Click="SignalChanged" />
+                                <CheckBox x:Name="EmergencySignal" Content="急停" Click="SignalChanged" />
+                            </WrapPanel>
+                        </GroupBox>
+                        <GroupBox Header="握手与插补反馈">
+                            <StackPanel>
+                                <TextBlock x:Name="Handshake" Margin="0,0,0,6" TextWrapping="Wrap" />
+                                <TextBlock x:Name="MotionFeedback" TextWrapping="Wrap" />
+                            </StackPanel>
+                        </GroupBox>
+                        <GroupBox Header="最近流程记录">
+                            <DataGrid x:Name="FlightEvents" Height="295">
+                                <DataGrid.Columns>
+                                    <DataGridTextColumn Header="仿真时间" Binding="{Binding Time, StringFormat=HH:mm:ss.fff}" Width="130" />
+                                    <DataGridTextColumn Header="组" Binding="{Binding Group}" Width="45" />
+                                    <DataGridTextColumn Header="尝试" Binding="{Binding Attempt}" Width="55" />
+                                    <DataGridTextColumn Header="事件" Binding="{Binding Kind}" Width="100" />
+                                    <DataGridTextColumn Header="记录" Binding="{Binding Description}" Width="*" />
+                                </DataGrid.Columns>
+                            </DataGrid>
+                        </GroupBox>
+                    </StackPanel>
+                </ScrollViewer>
+            </TabItem>
+        </TabControl>
+    </DockPanel>
+</UserControl>

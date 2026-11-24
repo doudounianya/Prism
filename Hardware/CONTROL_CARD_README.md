@@ -1,53 +1,54 @@
-# 运动控制卡接入说明
+﻿# 运动控制接入说明
 
-本次沿用原 Prism 模块/依赖注入和硬件关闭事件，四个 ControlCard 项目已加入 Program_Template.sln 的 Hardware 分组。PLC 通讯、PLC 轴页面、报警历史、产能同步及其采样周期保持现有路径。
+公共 API 统一为 IMotionController。项目为 Company.Hardware.ControlCard，具体实现位于 None、INOVANCE 两个项目；三个项目归入 Hardware。结构与迁移示例见 [公共层导航](Company.Hardware.ControlCard/README.md)。
 
-## 选择与启用
+## 选择与初始化
 
-- 三个实现分别命名注册为 None、AdTech、INOVANCE；通过 IControlCardFactory.Get(ControlCardKind) 选择，不再争用默认 IControlCard。
-- 加载模块、注册服务、解析工厂和解析驱动都不初始化设备。Config.Enabled 默认 false；真实卡还须 Config.AllowNativeHardware=true，以及对应厂商协议选项确认。
-- Config 和厂商 Options 在每次初始化时冻结。运行中修改原对象不会改变正在执行的协议；需停止、关闭后重新初始化。
-- CurrentTime/状态集合由驱动控制，IControlCard 返回只读克隆。bool 表示请求接受，不表示已到位/回零完成；读取 Valid、Busy、Arrived、Homed 等反馈。不支持的能力返回 false，并通过 out message 说明，不会以空操作伪装成功。
+通过 IMotionControllerFactory.Get(MotionDriverKind) 选择 Simulation、Inovance，每种实现按枚举名注册为命名单例。枚举数值保留 Simulation=0、Inovance=2，已移除的编号1不复用，也不回退到其他驱动。公共模块名为 MotionControllerModule；模块注册及服务解析不打开设备。
 
-仅离线仿真的示例：
+Initialize(MotionConfiguration) 直接接收配置并建立深快照。Enabled 默认 false，真实硬件还须 AllowNativeHardware=true，以及厂商协议确认选项。厂商 Options 同样在初始化时冻结，修改原配置须停止、关闭后重新初始化。
 
-```csharp
-var factory = container.Resolve<IControlCardFactory>();
-var card = factory.Get(ControlCardKind.None);
-var config = new ControlCardConfig { Enabled = true }; // 仍未允许任何真实硬件
-var provider = new ControlCardConfigSnapshotProvider(config);
-if (card.Init(provider))
-{
-    // 应用操作入口仍需执行用户权限、模式、维护互锁与操作日志。
-    // 仅在本离线 None 对象上明确请求使能/动作，读取状态后确认结果。
-}
-```
+命令返回 true 表示请求接受，定位、回零和轨迹完成须读取有效反馈。SDK 调用共用串行边界，保留限位、急停、报警、任务占用、数据有效性及待确认动作校验。逻辑轴和插补组改为配置化标识；旧 X/Y/Z/U 和 Coordinate0 至 Coordinate3 仅为默认配置与调用便捷名称，不决定设备轴数。
 
-没有把当前 HMI 的 PLC 轴索引直接映射到控制卡。控制卡逻辑轴为 X/Y/Z/U，HardwareAxis 是零基物理索引：汇川直接使用；AdTech 转成厂商的一基轴号。具体页面/工艺的来源映射须明确后才能接实机。
+AxisConfiguration.HardwareAxis 为零基物理索引，汇川直接使用。DigitalPointState.Bank/Bit 表示每组 16 位的 IO 地址，InputBankCount/OutputBankCount 是组数；不存在的端口通过 Available 单独标记，不显示成有效 OFF。
 
-## 已修复的范围
+## 驱动能力
 
-公共层修复相对门控、失败返回、初始化回滚、关闭重试、IO重复、无效参数及地址；SDK调用串行，操作前刷新状态，防止扫描延迟下的重复动作；等待有界可取消，超时保留待确认门控。保留旧18个方法，新增使能、复位、可报告结果的停止和等待接口。
-
-None 已实现单轴定位、相对位移、点动、回零、暂停恢复、停止、共享轴的多点坐标、IO、报警/急停/限位注入及完整生命周期。它是恒速状态模型，用于验证流程，不模拟伺服惯量和真实安全回路。
-
-## 真实驱动的边界
-
-| 驱动 | 已适配 | 尚未确认、明确拒绝的能力 |
+| 实现 | 已适配 | 未开放或待确认 |
 | --- | --- | --- |
-| INOVANCE | 单轴使能/定位/点动/暂停恢复/停止、正确位置入参和轴号、批量状态、IO逐位/地址、句柄失败清理 | XYZ坐标ABI及完整协议；未确认参数单位的回零；未确认伺服故障复位。回零单位确认后使用 SDK InUnit 接口。Homed/Origin未知位不猜 |
-| AdTech | 新接口签名、零基到一基轴号、绝对/相对模式、参数下发、状态/IO、回零启动及观测、停止、失败清理 | PTP暂停/恢复、完整XYZ轨迹和清空协议、未确认的保护输入语义。保守不虚构到位确认，短动作未观察到Busy时需明确停止解除待确认 |
+| Simulation（None 项目） | 单轴定位、相对位移、点动、回零、暂停恢复、停止、多点坐标、IO、报警/急停/限位注入 | 恒速流程模型，不模拟伺服惯量和真实保护回路 |
+| Inovance | 单轴使能/定位/点动/暂停恢复/停止；物理映射和 IO 核对；原点已知状态、独立回零监督；XYZ 直线、XY/YZ/ZX 圆弧、前瞻缓冲、取消清理、关闭重试 | PSO、位置比较、龙门同步、振镜连续联动未开放；通用伺服故障复位待确认 |
 
-AdTech 的 ProtectionInputValuesAreRawLevels 默认 null，AllowBusRestart、ApplyAxisConfiguration、ApplySoftLimits 默认 false。未确认保护语义/未授权总线重启时，在任何原生调用前拒绝初始化；默认不改单位/当量、不关闭卡上已有软限位。INOVANCE 默认不下载设备参数、不改急停极性、不写当量，先只读核对已有参数。
+MotionCapability 分开表达硬件支持、驱动实现、验证程度和当前就绪条件。SDK 存在函数不等于板卡型号、端子板、选件和驱动均支持。MotionControllerIdentity 无法可靠读取的型号、固件、FPGA 字段保留 Unknown；GetHwSysPara 的网络组合不当作型号。
 
-这两套 SDK 只允许 Windows x64。原生库从程序目录 runtimes/win-x64/native 按绝对路径加载，不回退到工作目录同名库。构建复制原SDK，不修改二进制；实际安装、固件和 ABI 仍需厂商资料及隔离实机确认。
+## 汇川 IMC30G-E
 
-回零超时的状态观测不等于独立安全看门狗；停止请求接受、句柄释放也不是机械已经停稳的证明。当前没有提前开启板卡后台采样，未改现有PLC周期。
+InovanceNativeOptions 以下确认项默认 false，不代替 Enabled、AllowNativeHardware 或应用权限，也不自动下载配置、写当量或修改急停极性：
 
-## 构建与验证
+| 选项 | 含义 |
+| --- | --- |
+| HomingAxisUnitsPerSecondConfirmed | 已核对本机回零速度/加速度为轴单位/s、轴单位/s² |
+| OriginInputBitConfirmed | 已核对当前固件原点输入为 C02 状态 bit13，否则 OriginKnown=false |
+| InterpolationProtocolConfirmed | 已核对板卡、固件、轴绑定和普通插补协议，允许显式提交轨迹 |
 
-Debug/Release解决方案构建会将本配置四个模块复制到 Shell/bin/<配置>/net8.0-windows/Modules，SDK复制到同一程序根下的 runtimes/win-x64/native。SkipModuleDeployment=true可用于只编译、不部署模块。
+现用 IMC_API_x64.dll 为 1.8.29.4，未用资料包 1.8.30.7 整包替换。原厂声明中的冲突参数及无界输出字符串入口继续隔离。
 
-本次未改原工程的整体发布打包机制。单独 dotnet publish Shell 到全新目录不能代替完整动态模块打包；正式包应纳入完整解决方案构建的 Modules 与 runtimes。不能只拷Shell.exe或把原生DLL放进Prism扫描的Modules目录。
+只在本会话实际提交回零/轨迹后开启对应监督，完成或明确清理后结束；构造、能力查询、页面加载不触发板卡轮询。任务超时使用单调计时，但软件等待不能中止卡住的非托管 API。
 
-离线验证工程位于 tests/ControlCard.Verification，不在产品解决方案中。没有执行真实SDK、下载配置或驱动设备；实机启用另行确认。
+## 轨迹任务
+
+StartTrajectory 接收不可变轨迹段，MoveLinearPath 是全直线便捷入口。终点为绝对位置，圆心为相对本段起点的平面偏移，不隐式接受整圆、多圈或螺旋。
+
+只操作本会话拥有的坐标系，不覆盖外部坐标系。异步预填充、缓冲背压、多次 EndData 期间持续占用参与轴；暂停、Busy 暂时为 false 或队列暂空均不自动释放。恢复前核对暂停位置，圆弧校验包含途中极值。
+
+自然完成须确认本任务进度、最终到位、停稳并解除持续使能。取消须停止并清队列，不表示到达原目标；读取或清理失败保留责任。WaitForTrajectory 跟随本次任务版本，取消等待只退出等待；停止任务需单独 CancelTrajectory。
+
+## 原生库和应用边界
+
+真实 SDK 仅支持 Windows x64，从程序目录 runtimes/win-x64/native 按绝对路径加载，不回退到工作目录；原生 DLL 不放进 Prism 扫描的 Modules。本轮只调整托管契约和命名，原生声明、SDK 二进制及选项默认值不变。
+
+现有 HMI 的 PLC 轴页面仍使用原 PLC 来源。应用层负责用户权限、手动调试、维护互锁和操作日志；控制卡层负责状态有效性及动作校验。PLC 通讯、报警保存、产能同步和采集周期保持原路径。
+
+完整解决方案 Debug/Release 构建会部署公共运动模块、仿真模块、汇川模块及原生依赖。SkipModuleDeployment=true 只编译不部署。单独发布 Shell 不代替 Modules 和 runtimes 的完整打包。外部旧插件需按公共层导航迁移后重新编译；离线检查不替代实际板卡时序、接线和精度验证。
+
+十三轴示例与主从关系配置见 [可配置运动模型](MOTION_CONFIGURATION.md)。仿真已支持配置化主从跟随；汇川实际电子齿轮执行仍未开放，有启用同步关系时在 SDK 调用前拒绝初始化。

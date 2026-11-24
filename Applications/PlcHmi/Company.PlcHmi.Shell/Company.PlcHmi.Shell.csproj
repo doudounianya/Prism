@@ -1,0 +1,68 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <UseWPF>true</UseWPF>
+    <UseWindowsForms>true</UseWindowsForms>
+  </PropertyGroup>
+  <ItemGroup>
+    <Using Remove="System.Windows.Forms" />
+    <Using Remove="System.Drawing" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="ExcelDataReader" Version="3.9.0" />
+    <PackageReference Include="MahApps.Metro" Version="2.4.11" />
+    <PackageReference Include="Prism.DryIoc" Version="9.0.537" />
+    <PackageReference Include="ReactiveUI" Version="22.3.1" />
+    <PackageReference Include="ReactiveUI.SourceGenerators" Version="2.5.1">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\Hardware\Company.Hardware.PLC.OpcUa\Company.Hardware.PLC.OpcUa.csproj" />
+    <ProjectReference Include="..\Company.PlcHmi.Shared\Company.PlcHmi.Shared.csproj" />
+    <ProjectReference Include="..\..\..\Framework\Company.Core\Company.Core.csproj" />
+    <ProjectReference Include="..\..\..\Framework\Company.Database\Company.Database.csproj" />
+    <ProjectReference Include="..\..\..\Framework\Company.Logger\Company.Logger.csproj" />
+    <ProjectReference Include="..\..\..\Framework\Company.UI\Company.UI.csproj" />
+  </ItemGroup>
+  <Target Name="DeployPlcBindingConfig" AfterTargets="Build">
+    <PropertyGroup>
+      <PlcBindingConfigTarget>$(TargetDir)Config\PLC\CRT_HMI_PLC变量绑定配置.xlsx</PlcBindingConfigTarget>
+    </PropertyGroup>
+    <MakeDir Directories="$(TargetDir)Config\PLC" />
+    <Copy SourceFiles="$(MSBuildProjectDirectory)\Config\PLC\CRT_HMI_PLC变量绑定配置.xlsx" DestinationFiles="$(PlcBindingConfigTarget)" Condition="!Exists('$(PlcBindingConfigTarget)')" />
+  </Target>
+  <Target Name="PublishPlcBindingConfig" AfterTargets="Publish">
+    <MakeDir Directories="$(PublishDir)Config\PLC" />
+    <Copy SourceFiles="$(MSBuildProjectDirectory)\Config\PLC\CRT_HMI_PLC变量绑定配置.xlsx" DestinationFiles="$(PublishDir)Config\PLC\CRT_HMI_PLC变量绑定配置.xlsx" Condition="!Exists('$(PublishDir)Config\PLC\CRT_HMI_PLC变量绑定配置.xlsx')" />
+  </Target>
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\Framework\Company.Platform.Shared\Company.Platform.Shared.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <Using Include="Company.Platform.Shared.Login" />
+    <Using Include="Company.Platform.Shared.Model" />
+    <Using Include="Company.Platform.Shared.Events" />
+    <Using Include="Company.Platform.Shared.Config" />
+  </ItemGroup>
+  <PropertyGroup>
+    <IsPlcHmiHost>true</IsPlcHmiHost>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\Framework\Company.Database.SqlSugar\Company.Database.SqlSugar.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="../../../Framework/Company.Desktop/Company.Desktop.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="../Company.PlcHmi.Composition/Company.PlcHmi.Composition.csproj" />
+    <ProjectReference Include="../../../Framework/Company.Hmi.Presentation/Company.Hmi.Presentation.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <Using Include="Company.PlcHmi.Shared.Login" />
+  </ItemGroup>
+</Project>

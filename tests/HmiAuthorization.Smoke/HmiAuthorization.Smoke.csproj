@@ -1,0 +1,12 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../../Framework/Company.Platform.Services/Company.Platform.Services.csproj" />
+    <ProjectReference Include="../../Applications/PlcHmi/Company.PlcHmi.Shared/Company.PlcHmi.Shared.csproj" />
+  </ItemGroup>
+</Project>

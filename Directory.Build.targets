@@ -1,0 +1,44 @@
+﻿<Project>
+  <!-- 在普通编译中直接阻止后台库重新引入桌面依赖；完整传递依赖由 tools/verify_architecture.py 检查。 -->
+  <Target Name="ValidateHeadlessBoundary" BeforeTargets="PrepareForBuild" Condition="'$(HeadlessLibrary)' == 'true'">
+    <Error Condition="'$(UseWPF)' == 'true' Or '$(UseWindowsForms)' == 'true'" Text="后台库 $(MSBuildProjectName) 不能启用 WPF/WinForms；界面功能应放到 Company.Desktop 或应用界面项目。" />
+    <ItemGroup>
+      <_ForbiddenDesktopPackage Include="@(PackageReference)" Condition="$([System.Text.RegularExpressions.Regex]::IsMatch('%(PackageReference.Identity)', '^(Prism\.(Wpf|DryIoc)|ReactiveUI|MahApps\.)'))" />
+      <_ForbiddenDesktopProject Include="@(ProjectReference)" Condition="'%(ProjectReference.Filename)' == 'Company.Desktop' Or '%(ProjectReference.Filename)' == 'Company.UI' Or '%(ProjectReference.Filename)' == 'Company.PlcHmi.Composition'" />
+      <_ForbiddenDesktopProject Include="@(ProjectReference)" Condition="'%(ProjectReference.Filename)' == 'Company.Hmi.Presentation' Or '%(ProjectReference.Filename)' == 'Company.FlyScan.Shell'" />
+    </ItemGroup>
+    <Error Condition="'@(_ForbiddenDesktopPackage)' != ''" Text="后台库 $(MSBuildProjectName) 引入了桌面包：@(_ForbiddenDesktopPackage)。" />
+    <Error Condition="'@(_ForbiddenDesktopProject)' != ''" Text="后台库 $(MSBuildProjectName) 反向引用了桌面装配项目：@(_ForbiddenDesktopProject)。" />
+  </Target>
+
+  <!-- 从旧输出升级时，仅迁走六个已经取消 IModule 的程序集副本。
+       后台程序集在宿主根目录继续存在；保留副本便于恢复，避免重复发现同名模块。 -->
+  <Target Name="RetireLegacyModuleCopies" BeforeTargets="Build" Condition="'$(IsPlcHmiHost)' == 'true' And '$(SkipModuleDeployment)' != 'true'">
+    <ItemGroup>
+      <_LegacyModuleCopy Include="$(TargetDir)Modules\Company.Database.SqlSugar.dll;$(TargetDir)Modules\Company.PlcHmi.Plc.dll;$(TargetDir)Modules\Company.PlcHmi.Persistence.dll;$(TargetDir)Modules\Company.Hardware.ControlCard.dll;$(TargetDir)Modules\Company.Hardware.ControlCard.None.dll;$(TargetDir)$(TargetDir)Modules\Company.Hardware.ControlCard.INOVANCE.dll" />
+      <_ExistingLegacyModuleCopy Include="@(_LegacyModuleCopy)" Condition="Exists('%(_LegacyModuleCopy.Identity)')" />
+    </ItemGroup>
+    <MakeDir Directories="$(TargetDir)RetiredModules" Condition="'@(_ExistingLegacyModuleCopy)' != ''" />
+    <Move SourceFiles="@(_ExistingLegacyModuleCopy)" DestinationFolder="$(TargetDir)RetiredModules" Condition="'@(_ExistingLegacyModuleCopy)' != ''" />
+  </Target>
+
+  <!-- 模块部署目标由宿主选择；后续应用可通过全局属性 PrismModuleOutputRoot 指定自己的输出目录。 -->
+  <Target Name="DeployPrismModuleToHost" AfterTargets="Build" Condition="'$(DeployPrismModule)' == 'true' and '$(SkipModuleDeployment)' != 'true'">
+    <PropertyGroup>
+      <_PrismModuleOutputRoot Condition="'$(PrismModuleOutputRoot)' == ''">$(MSBuildThisFileDirectory)Applications\PlcHmi\Company.PlcHmi.Shell\bin\$(Configuration)\$(TargetFramework)\</_PrismModuleOutputRoot>
+      <_PrismModuleOutputRoot Condition="'$(PrismModuleOutputRoot)' != ''">$(PrismModuleOutputRoot)</_PrismModuleOutputRoot>
+    </PropertyGroup>
+    <MakeDir Directories="$(_PrismModuleOutputRoot)Modules" />
+    <Copy SourceFiles="$(TargetPath)" DestinationFolder="$(_PrismModuleOutputRoot)Modules" SkipUnchangedFiles="true" />
+    <MakeDir Directories="$(_PrismModuleOutputRoot)runtimes\win-x64\native" Condition="'$(PrismNativeLibrary)' != ''" />
+    <Copy SourceFiles="$(MSBuildProjectDirectory)\$(PrismNativeLibrary)" DestinationFolder="$(_PrismModuleOutputRoot)runtimes\win-x64\native" SkipUnchangedFiles="true" Condition="'$(PrismNativeLibrary)' != ''" />
+  </Target>
+
+  <!-- 首次构建恢复对应配置的迁移快照；已经存在的现场文件绝不覆盖。 -->
+  <Target Name="SeedPlcHmiConfiguration" BeforeTargets="PrepareForBuild" Condition="'$(IsPlcHmiHost)' == 'true'">
+    <ItemGroup>
+      <_PlcHmiSeed Include="$(MSBuildThisFileDirectory)Applications\PlcHmi\ConfigurationProfiles\$(Configuration)\**\*" />
+    </ItemGroup>
+    <Copy SourceFiles="@(_PlcHmiSeed)" DestinationFiles="@(_PlcHmiSeed->'$(TargetDir)Config\%(RecursiveDir)%(Filename)%(Extension)')" Condition="!Exists('$(TargetDir)Config\%(_PlcHmiSeed.RecursiveDir)%(_PlcHmiSeed.Filename)%(_PlcHmiSeed.Extension)')" />
+  </Target>
+</Project>

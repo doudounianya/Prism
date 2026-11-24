@@ -13,5 +13,9 @@ public sealed class InovanceNativeOptions
     public bool? EmergencyInputInverted { get; set; }
     /// <summary>确认回零参数单位为轴单位/s、轴单位/s²后才启用 InUnit 回零接口。</summary>
     public bool HomingAxisUnitsPerSecondConfirmed { get; set; }
+    /// <summary>确认所用卡/固件遵循本次C02普通插补协议后，才允许显式创建轨迹任务。</summary>
+    public bool InterpolationProtocolConfirmed { get; set; }
+    /// <summary>确认当前固件的原点输入为状态bit13；未确认时OriginKnown保持false。</summary>
+    public bool OriginInputBitConfirmed { get; set; }
     internal InovanceNativeOptions Snapshot() => (InovanceNativeOptions)MemberwiseClone();
 }
