@@ -26,8 +26,8 @@ public sealed partial class INOVANCEControlCard
             bool isBasic = basic.Contains(feature), isInterpolation = interpolation.Contains(feature);
             bool implemented = isBasic || isInterpolation;
             CapabilitySupport support = resourcesVerified && implemented ? CapabilitySupport.Supported : CapabilitySupport.Unknown;
-            if (feature == MotionFeature.PositionCompare && resourcesVerified)
-                support = resources.terminalexist != 0 ? CapabilitySupport.Supported : CapabilitySupport.Unsupported;
+            if (feature == MotionFeature.PositionCompare && resourcesVerified && resources.terminalexist == 0)
+                support = CapabilitySupport.Unsupported;
             bool ready = feature switch
             {
                 MotionFeature.Homing => axisReady && options.HomingAxisUnitsPerSecondConfirmed,
@@ -35,7 +35,7 @@ public sealed partial class INOVANCEControlCard
                 _ => isInterpolation ? coordinateReady : isBasic && axisReady
             };
             string reason = feature == MotionFeature.PositionCompare && resourcesVerified
-                ? resources.terminalexist != 0 ? "已发现端子板位置比较资源，但驱动未适配；维数和端口复用仍须单独核对。" : "未连接标准位置比较输出所需的端子板。"
+                ? resources.terminalexist != 0 ? "已检测到端子板，比较维数、位置源和实际输出尚未验证，驱动未开放此能力。" : "未连接标准位置比较输出所需的端子板。"
                 : !implemented ? "该高级功能的资源与协议尚未完成适配，不能按SDK函数名开放。"
                 : !resourcesVerified ? "尚未核对当前板卡的物理轴绑定和资源。"
                 : isInterpolation && !options.InterpolationProtocolConfirmed ? "插补已完成离线适配，现场配套协议尚未确认。"

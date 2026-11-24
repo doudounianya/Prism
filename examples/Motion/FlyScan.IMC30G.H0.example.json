@@ -1,0 +1,56 @@
+{
+  "kind": "template",
+  "testedAt": null,
+  "technician": null,
+  "reviewer": null,
+  "device": {
+    "model": null,
+    "firmware": null,
+    "terminalModel": null,
+    "terminalRevision": null,
+    "terminalOnline": null,
+    "axisCapacity": null,
+    "sdkSha256": null
+  },
+  "compare": {
+    "port": null,
+    "dimensionReadback": null,
+    "outputType": null,
+    "physicalOutput": null,
+    "outputExclusive": null,
+    "sources": [
+      { "axis": "Front.X", "terminalChannel": null, "source": null },
+      { "axis": "Front.Y", "terminalChannel": null, "source": null },
+      { "axis": "Front.R1", "terminalChannel": null, "source": null }
+    ]
+  },
+  "gear": {
+    "masterAxis": 2,
+    "followerAxis": 3,
+    "source": "CommandPosition",
+    "ratioInDegrees": 1,
+    "followedFeedback": null,
+    "releasedFeedback": null
+  },
+  "limits": {
+    "positionTolerance": [null, null, null],
+    "gearPositionDeg": null,
+    "gearSpeedDegPerSec": null,
+    "pulseWidthUs": [null, null],
+    "maxSampleGapMs": null
+  },
+  "artifacts": {
+    "hardware": { "file": null, "sha256": null },
+    "encoders": { "file": null, "sha256": null },
+    "trigger": { "file": null, "sha256": null },
+    "gear": { "file": null, "sha256": null }
+  },
+  "cases": {
+    "forward": { "targets": [], "encoders": [], "edges": [] },
+    "reverse": { "targets": [], "encoders": [], "edges": [] },
+    "rejectX": { "targets": [], "encoders": [], "edges": [] },
+    "rejectY": { "targets": [], "encoders": [], "edges": [] },
+    "rejectR1": { "targets": [], "encoders": [], "edges": [] },
+    "gearExit": { "targets": [], "encoders": [], "edges": [] }
+  }
+}

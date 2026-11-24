@@ -81,4 +81,6 @@ G3 的手动示教、配方和双组飞拍已完成离线验收，100 次仿真�
 
 G4 的共享业务页面、飞拍历史和 PLC HMI 升级及回退已完成离线验收，见 [G4 验收记录](G4Verification.md)。
 
+H0 已完成 SDK 导出、13 轴配置和波形判定的离线核验，见 [H0 离线核验记录](H0Verification.md)。H0 实机签收与 G5 的工艺限值确认仍待完成。
+
 工程依据见 [现有分层约定](../Architecture.md)、[操作与生命周期](../LifecycleOperations.md)、[可配置运动轴](../Hardware/MOTION_CONFIGURATION.md) 和 [驱动能力](../Hardware/CONTROL_CARD_README.md)。
