@@ -27,7 +27,7 @@ python tools/verify_release_candidates.py --packages C:/Temp/PrismCandidates --o
 
 入口按清单复核两个现有 ZIP 的路径、文件哈希、模块隔离和公共界面程序集一致性，再在临时源码副本上运行分层检查、Debug 与 Release 构建、运行时及权限回归、13 轴配置、飞拍流程和 H0 离线测试。使用 `--packages-only` 可只核对 ZIP。交互式 Windows 会话可加 `--desktop` 运行源码构建的飞拍界面和共享 IO 仿真。离线 NuGet 恢复沿用 `--restore-source`。
 
-`report.json` 分别记录安装包哈希、源码快照哈希、各项通过和失败、未运行项及日志位置。任一已选检查失败时返回退出码 `1`。PLC HMI 的历史回退和 OPC UA 回环均可按需复跑。H0 实机验收仍为待验证。
+`report.json` 分别记录安装包哈希、源码快照哈希、各项通过和失败、未运行项及日志位置。任一已选检查失败时返回退出码 `1`。PLC HMI 的历史回退、OPC UA 回环和参数权限均可按需复跑。H0 实机验收仍为待验证。
 
 ### PLC HMI 历史恢复与回退
 
@@ -60,6 +60,20 @@ python tools/verify_release_candidates.py --packages C:/Temp/PrismCandidates --o
 总报告的 `plcOpcUaLoopback` 记录本项结果，`plcDesktopAndRollback` 继续记录全量桌面矩阵的独立夹具要求。`plc-opcua/report.json` 记录候选包哈希、断言数量和详细日志。测试在专用回环服务结束后关闭临时 MySQL。
 
 2026-11-25 使用重新构建的候选包完成回环复跑，44 项断言通过。统一入口合并历史回退、飞拍界面和流程后共 20 项检查通过。 [OPC UA 回环验证记录](verification/2026-11-25-plc-opcua-loopback.zip)
+
+### PLC HMI 轴与气缸参数权限
+
+在交互式 Windows 会话中使用 `--plc-parameters`，可与其他离线用例一起运行。工装为候选包生成轴和气缸的合成点位，运行独立的本机 OPC UA 服务和 MySQL 测试库。
+
+```powershell
+python tools/verify_release_candidates.py --packages C:/Temp/PrismCandidates --output C:/Temp/PrismParameterPermissions --plc-parameters --mysql-bin 'C:/Program Files/MySQL/MySQL Server 8.0/bin'
+```
+
+用例通过候选包登录操作员、设备工程师、工艺工程师和管理员，也从未登录的工作区进入轴和气缸参数页。未登录用户和操作员在手动调试时仍可只读查看。有权限的角色须等到手动调试反馈确认后才能修改参数和操作按钮。回环服务记录实际界面产生的轴点动速度、使能、绝对位置运行、气缸到位延时及伸缩请求。退出调试时保持当前页面，复查只读状态和已打开编辑请求的提交限制。
+
+汇总结果位于 `separateAcceptance.plcParameterPermissions`。详细证据保存在 `plc-parameters/report.json` 和 `plc-parameters/parameters.log`。
+
+2026-11-25 完成参数权限复跑，209 项断言通过。统一入口连同历史回退、原 OPC UA 回环和飞拍仿真共 21 项检查通过。 [参数权限验证记录](verification/2026-11-25-plc-parameter-permissions.zip)
 
 ## 配置和数据恢复
 

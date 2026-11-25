@@ -84,16 +84,30 @@ def set_cells(sheet, row, columns, values):
         sheet.cell(row, columns[name]).value = value
 
 
-def set_loopback_points(book):
-    points = {f"UnitMode[0].{label}": (node, None, "Int16") for label, node in (("Mode", "i_Mode"), ("Status", "i_Status"))}
+def set_loopback_points(book, parameter_points=()):
+    points = {f"UnitMode[0].{label}": (node, None, "Int16", "R", "只读")
+              for label, node in (("Mode", "i_Mode"), ("Status", "i_Status"))}
+    action_node = "Fixture.System.st_UnitMode[0].b_Action"
     for bank, count in (("Action", 9), ("Signal", 6)):
-        node = "Fixture.System.st_UnitMode[0].b_Action" if bank == "Action" else "b_Signal"
-        points.update({f"UnitMode[0].{bank}[{n}]": (node, n, "Bool") for n in range(count)})
+        node = action_node if bank == "Action" else "b_Signal"
+        points.update({f"UnitMode[0].{bank}[{n}]": (node, n, "Bool", "R", "只读") for n in range(count)})
     for bank in ("DI", "DO"):
-        points.update({f"IO.{bank}[0].{n:02d}": (bank, n, "Bool") for n in range(16)})
+        points.update({f"IO.{bank}[0].{n:02d}": (bank, n, "Bool", "R", "只读") for n in range(16)})
+    points[STOP] = (action_node, 3, "Bool", "RW", "握手请求")
 
     selected = set()
     selected_sheets = {"设备状态_OpcUa", "IO_OpcUa"}
+    if parameter_points:
+        selected_sheets.update(("轴_OpcUa", "气缸_OpcUa"))
+        points["UnitMode[0].Request.Debug"] = (action_node, 6, "Bool", "W", "保持请求")
+        for point in parameter_points:
+            key, data_type = point["Key"], point["Type"]
+            write_mode = point.get("WriteMode")
+            access = "W" if point.get("WriteOnly") else "RW" if write_mode else "R"
+            points[key] = ("Fixture." + key, None, data_type, access, write_mode or "只读")
+            if command := point.get("Command"):
+                points[command] = ("Fixture." + key, None, data_type, "W", "握手请求")
+
     for sheet in book.worksheets:
         if not sheet.title.endswith(("_OpcUa", "_Modbus")):
             continue
@@ -110,16 +124,16 @@ def set_loopback_points(book):
             if key in selected:
                 raise ValueError(f"Duplicate OPC UA fixture point: {key}")
             selected.add(key)
-            node, index, data_type = points[key]
+            node, index, data_type, access, write_mode = points[key]
             set_cells(sheet, row, columns, {"命名空间URI": OPCUA_NAMESPACE, "节点标识": "s=" + node,
                                            "OPC UA数组索引": index, "数据类型": data_type, "比例": 1, "偏移": 0,
-                                           "布尔取反": "否", "访问权限": "RW" if key == STOP else "R",
-                                           "采集组": "PAGE.Active", "写入方式": "握手请求" if key == STOP else "只读"})
+                                           "布尔取反": "否", "访问权限": access,
+                                           "采集组": "PAGE.Active" if "R" in access else None, "写入方式": write_mode})
     if selected != points.keys():
         raise ValueError(f"Missing OPC UA fixture points: {', '.join(sorted(points.keys() - selected))}")
 
 
-def make_workbook(template, target, opcua_port=None):
+def make_workbook(template, target, opcua_port=None, parameter_points=()):
     try:
         from openpyxl import load_workbook
     except ImportError as error:
@@ -142,7 +156,7 @@ def make_workbook(template, target, opcua_port=None):
             set_cells(sheet, enabled[0], columns, {"启用": "是", "协议": "OpcUa", "变量Sheet后缀": "_OpcUa",
                                                   "OPC UA端点": f"opc.tcp://127.0.0.1:{opcua_port}/CRT",
                                                   "安全模式": "None", "安全策略": "None"})
-            set_loopback_points(book)
+            set_loopback_points(book, parameter_points)
         book.save(target)
     finally:
         book.close()
@@ -168,7 +182,11 @@ def run_opcua(source, work, evidence, env, mysql_bin, candidate, verify_package)
     return run_desktop(source, work, evidence, env, mysql_bin, candidate, verify_package)
 
 
-def run_desktop(source, work, evidence, env, mysql_bin, candidate, verify_package, *, baseline=None):
+def run_parameters(source, work, evidence, env, mysql_bin, candidate, verify_package):
+    return run_desktop(source, work, evidence, env, mysql_bin, candidate, verify_package, probe="parameters")
+
+
+def run_desktop(source, work, evidence, env, mysql_bin, candidate, verify_package, *, baseline=None, probe="opcua"):
     work.mkdir()
     evidence.mkdir()
     binaries = source / "tests" / PROBE / "bin/Release/net8.0-windows"
@@ -176,14 +194,17 @@ def run_desktop(source, work, evidence, env, mysql_bin, candidate, verify_packag
     template = source / "Applications/PlcHmi/Company.PlcHmi.Shell" / workbook_rel
     config_backup = work / workbook_rel.name
     opcua_port = loopback_port() if baseline is None else None
-    make_workbook(template, config_backup, opcua_port)
+    parameter_points = ()
+    if probe == "parameters":
+        parameter_points = json.loads((source / "tests" / PROBE / "ParameterPoints.json").read_text(encoding="utf-8"))
+    make_workbook(template, config_backup, opcua_port, parameter_points)
     probe_env = {name: value for name, value in env.items() if not name.upper().startswith(("PRISM_DATABASE_", "MYSQL_"))}
     probe_env["MYSQL_TEST_LOGIN_FILE"] = str(work / "test-login.cnf")
     if opcua_port:
         probe_env["CRT_HMI_PLC_WRITES"] = "1"
     account_secret, database_secret = secrets.token_hex(16), secrets.token_hex(16)
     installations = {}
-    phases = (("opcua", candidate),) if baseline is None else (("baseline", baseline), ("candidate", candidate), ("rollback", baseline))
+    phases = ((probe, candidate),) if baseline is None else (("baseline", baseline), ("candidate", candidate), ("rollback", baseline))
     for name, archive in phases:
         destination = work / name
         installations[name] = destination, prepare_install(archive, destination, work, binaries, verify_package)
@@ -224,7 +245,7 @@ def run_desktop(source, work, evidence, env, mysql_bin, candidate, verify_packag
             log = evidence / f"{name}.log"
             with log.open("wb") as stream:
                 subprocess.run(["dotnet", str(install / f"{PROBE}.dll"), mode], cwd=install, env=probe_env,
-                               stdout=stream, stderr=subprocess.STDOUT, check=True, timeout=100)
+                               stdout=stream, stderr=subprocess.STDOUT, check=True, timeout=240 if mode == "parameters" else 100)
             lines = log.read_text(encoding="utf-8-sig").splitlines()
             if "PASS packaged window closed normally" not in lines:
                 raise RuntimeError(f"The desktop probe did not confirm orderly exit: {log.name}")
@@ -233,7 +254,7 @@ def run_desktop(source, work, evidence, env, mysql_bin, candidate, verify_packag
 
         result = {"status": "passed", "phases": observations}
         if baseline is None:
-            run_phase("opcua", SCHEMA, "opcua")
+            run_phase(probe, SCHEMA, probe)
         else:
             run_phase("baseline", SCHEMA, "seed")
             with (evidence / "backup.log").open("wb") as log:

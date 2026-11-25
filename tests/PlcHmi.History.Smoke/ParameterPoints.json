@@ -1,0 +1,20 @@
+[
+  { "Key": "Axis[0].ActualPosition", "Type": "Double", "Initial": 12.5 },
+  { "Key": "Axis[0].st_Parameter.i_Jog_Vel", "Type": "Double", "Initial": 8, "WriteMode": "参数暂存" },
+  { "Key": "Axis[0].st_Action.b_Power_Execute", "Type": "Bool", "Initial": false, "Command": "Axis[0].Request.Enable" },
+  { "Key": "Axis[0].st_Action.b_Home_On", "Type": "Bool", "Initial": false, "Command": "Axis[0].Request.Home" },
+  { "Key": "Axis[0].st_Action.b_Stop_Execute", "Type": "Bool", "Initial": false, "Command": "Axis[0].Request.Stop" },
+  { "Key": "Axis[0].st_Action.b_Reset_Execute", "Type": "Bool", "Initial": false, "Command": "Axis[0].Request.ResetFault" },
+  { "Key": "Axis[0].st_Action.b_Forward_On", "Type": "Bool", "Initial": false, "Command": "Axis[0].Request.JogPositive" },
+  { "Key": "Axis[0].st_Action.b_Backward_On", "Type": "Bool", "Initial": false, "Command": "Axis[0].Request.JogNegative" },
+  { "Key": "Axis[0].st_Parameter.i_Abs_Pos[0]", "Type": "Double", "Initial": 20, "WriteMode": "参数暂存" },
+  { "Key": "Axis[0].st_Action.b_Abs_On[0]", "Type": "Bool", "Initial": false, "Command": "Axis[0].Positions[0].Run" },
+  { "Key": "CYL[0].Retract.Elapsed", "Type": "Int32", "Initial": 34 },
+  { "Key": "CYL[0].Retract.CommandFeedback", "Type": "Bool", "Initial": true, "Command": "CYL[0].Request.Retract" },
+  { "Key": "CYL[0].Extend.CommandFeedback", "Type": "Bool", "Initial": false, "Command": "CYL[0].Request.Extend" },
+  { "Key": "CYL[0].Parameters.Retract.ArrivalDelay", "Type": "Int16", "Initial": 120, "WriteMode": "参数暂存" },
+  { "Key": "CYL[0].Parameters.Retract.AlarmTimeout", "Type": "Int16", "Initial": 600, "WriteMode": "参数暂存" },
+  { "Key": "CYL[0].Parameters.Extend.ArrivalDelay", "Type": "Int16", "Initial": 140, "WriteMode": "参数暂存" },
+  { "Key": "CYL[0].Parameters.Extend.AlarmTimeout", "Type": "Int16", "Initial": 620, "WriteMode": "参数暂存" },
+  { "Key": "CYL[0].ResetFault", "Type": "Bool", "Initial": false, "WriteMode": "握手请求", "WriteOnly": true }
+]

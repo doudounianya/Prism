@@ -35,7 +35,7 @@ internal static partial class Program
     {
         Console.OutputEncoding = Encoding.UTF8;
         string root = AppContext.BaseDirectory;
-        if (args is not ["seed" or "read" or "opcua"] || !File.Exists(Path.Combine(root, "history-fixture.json")))
+        if (args is not ["seed" or "read" or "opcua" or "parameters"] || !File.Exists(Path.Combine(root, "history-fixture.json")))
             return 2;
         if (Mutex.TryOpenExisting(@"Local\CRT_HMI.SingleInstance", out var existing))
         {
@@ -54,8 +54,10 @@ internal static partial class Program
             "isolated database and fixture workbook verified before startup");
         Environment.SetEnvironmentVariable("PRISM_DATABASE_PROVIDER", null);
         Environment.SetEnvironmentVariable("PRISM_DATABASE_CONNECTION_STRING", null);
-        using var opcua = args[0] == "opcua" && fixture.OpcUaPort is { } port ? new LoopbackOpcUa(port) : null;
-        if (args[0] == "opcua" && opcua is null) return 2;
+        string mode = args[0];
+        bool loopback = mode is "opcua" or "parameters";
+        if (loopback != fixture.OpcUaPort.HasValue) return 2;
+        using var opcua = fixture.OpcUaPort is { } port ? new LoopbackOpcUa(port, mode == "parameters") : null;
         AssemblyLoadContext.Default.Resolving += (context, name) =>
         {
             var path = Path.Combine(root, "Modules", name.Name + ".dll");
@@ -66,7 +68,7 @@ internal static partial class Program
         app.InitializeComponent();
         app.Startup += (_, _) => app.Dispatcher.InvokeAsync(async () =>
         {
-            try { await Verify(app, fixture.AccountSecret, args[0] != "read", opcua); }
+            try { await Verify(app, fixture.AccountSecret, mode, opcua); }
             catch (Exception error)
             {
                 Console.Error.WriteLine(error);
@@ -76,7 +78,7 @@ internal static partial class Program
         return app.Run();
     }
 
-    private static async Task Verify(Company.PlcHmi.Shell.App app, string secret, bool seed, LoopbackOpcUa? opcua)
+    private static async Task Verify(Company.PlcHmi.Shell.App app, string secret, string mode, LoopbackOpcUa? opcua)
     {
         var window = (Company.PlcHmi.Shell.Views.MainWindow)app.MainWindow;
         var container = PrismProvider.Container;
@@ -85,34 +87,28 @@ internal static partial class Program
         {
             // The login shell has not loaded the configuration module yet. Preflight the file without starting any device.
             var preflight = new PlcBindingConfigProvider(new PlcBindingExcelLoader(), new PlcBindingValidator());
-            await ValidateLoopbackWorkbook(preflight, opcua);
+            await ValidateLoopbackWorkbook(preflight, opcua, mode == "parameters");
             await opcua.ConnectAsync();
             Console.WriteLine("PASS OPC UA fixture listening on IPv4 loopback only");
         }
-        if (seed)
+        var session = container.Resolve<ISession>();
+        if (mode == "parameters")
         {
             var accounts = container.Resolve<IUserAccountRepository>();
-            Check(accounts.Insert(new UserAccount { UserName = UserName, Role = 1,
-                PasswordHash = MD5Helper.GetMD5_32(secret), CreatedAt = DateTime.Now }), "created synthetic account");
+            await VerifyParameterPermissions(window, container, session, accounts, secret, opcua!.Nodes);
         }
-        var login = (FrameworkElement)Active(RegionNames.MainRegion)!;
-        var button = (Button)login.FindName("LoginButton");
-        await Wait(() => button.IsEnabled, "login command available");
-        var userInput = (TextBox)login.FindName("UserNameInput");
-        userInput.SetCurrentValue(TextBox.TextProperty, UserName);
-        userInput.GetBindingExpression(TextBox.TextProperty)?.UpdateSource();
-        ((PasswordBox)login.FindName("PasswordInput")).Password = secret;
-        Click(button);
-        await Wait(() => Active(RegionNames.MainRegion)?.GetType().Name == ViewNames.MainView, "login opens packaged main workspace");
-        var session = container.Resolve<ISession>();
-        Check(session.CurrentUser is { Id: > 0, UserName: UserName }, "synthetic account authenticated");
-        if (opcua is not null)
-            await VerifyOpcUa(window, container.Resolve<IPlcRuntime>(), opcua);
         else
-            await VerifyHistory(window, container);
+        {
+            if (mode != "read")
+                SeedAccount(container.Resolve<IUserAccountRepository>(), UserName, UserRole.Administrator, secret);
+            await Login(session, UserName, UserRole.Administrator, secret);
+            if (opcua is not null)
+                await VerifyOpcUa(window, container.Resolve<IPlcRuntime>(), opcua);
+            else
+                await VerifyHistory(window, container);
+            await Logout(window, session);
+        }
 
-        Click(FindButton(window, "退出登录"));
-        await Wait(() => session.CurrentUser.Id == 0, "logout removes the authenticated session");
         window.Close();
         MessageDialog? dialog = null;
         var clock = Stopwatch.StartNew();
@@ -125,6 +121,37 @@ internal static partial class Program
         Check(dialog is { IsLoaded: true }, "close confirmation displayed");
         window.Closed += (_, _) => Console.WriteLine("PASS packaged window closed normally");
         Click(FindButton(dialog!, "关闭程序"));
+    }
+
+    private static void SeedAccount(IUserAccountRepository accounts, string userName, UserRole role, string secret) =>
+        Check(accounts.Insert(new UserAccount { UserName = userName, Role = (int)role,
+            PasswordHash = MD5Helper.GetMD5_32(secret), CreatedAt = DateTime.Now }), $"created synthetic account for {role}");
+
+    private static async Task Login(ISession session, string userName, UserRole role, string secret)
+    {
+        await Wait(() => Active(RegionNames.MainRegion)?.GetType().Name == ViewNames.LoginView, "login screen available");
+        var login = (FrameworkElement)Active(RegionNames.MainRegion)!;
+        var button = (Button)login.FindName("LoginButton");
+        await Wait(() => button.IsEnabled, "login command available");
+        var userInput = (TextBox)login.FindName("UserNameInput");
+        userInput.SetCurrentValue(TextBox.TextProperty, userName);
+        userInput.GetBindingExpression(TextBox.TextProperty)?.UpdateSource();
+        ((PasswordBox)login.FindName("PasswordInput")).Password = secret;
+        Click(button);
+        await Wait(() => Active(RegionNames.MainRegion)?.GetType().Name == ViewNames.MainView &&
+            session.CurrentUser is { Id: > 0 } user && user.UserName == userName && user.Role == (int)role,
+            $"synthetic {role} authenticated and sees the packaged workspace");
+    }
+
+    private static async Task Logout(Window window, ISession session)
+    {
+        var signOut = FindButton(window, "退出登录");
+        var command = signOut.Command;
+        Click(signOut);
+        // Identity changes before the asynchronous sign-out has finished saving preferences.
+        await Wait(() => session.CurrentUser.Id == 0 && command.CanExecute(signOut.CommandParameter) &&
+            Active(RegionNames.MainRegion)?.GetType().Name == ViewNames.MainView,
+            "logout removes the authenticated session and keeps the monitoring workspace open");
     }
 
     private static object? Active(string region) => PrismProvider.RegionManager.Regions[region].ActiveViews.FirstOrDefault();

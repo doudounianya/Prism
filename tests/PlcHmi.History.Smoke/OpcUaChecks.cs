@@ -10,7 +10,7 @@ using Company.PlcHmi.Shared.Prism;
 
 internal static partial class Program
 {
-    private static async Task ValidateLoopbackWorkbook(IPlcBindingConfigProvider provider, LoopbackOpcUa opcua)
+    private static async Task ValidateLoopbackWorkbook(IPlcBindingConfigProvider provider, LoopbackOpcUa opcua, bool verifyParameters)
     {
         var loaded = await provider.LoadAsync();
         if (!loaded.Success)
@@ -22,10 +22,16 @@ internal static partial class Program
             devices[0].OpcUaEndpoint == opcua.Endpoint, "exactly one configured device targets the loopback endpoint");
         var points = configuration.ActiveVariables.ToArray();
         const string stopAddress = "s=" + FixtureNodes.StopBankNode;
-        Check(points.Length == 49 && points.All(point => point.Address is OpcUaBindingAddress { NamespaceUri: LoopbackOpcUa.AddressSpace }) &&
-            points.Where(point => point.Access.HasFlag(PlcAccess.Write)).ToArray() is
-                [{ LogicalId: "UnitMode[0].Action[3]", WriteMode: "握手请求", Address: OpcUaBindingAddress { NodeIdentifier: stopAddress, ArrayIndex: 3 } }],
-            "only b_Action[3] is writable among the synthetic OPC UA bindings");
+        var writable = points.Where(point => point.Access.HasFlag(PlcAccess.Write)).ToDictionary(point => point.LogicalId);
+        Check(points.All(point => point.DeviceId == "PLC01" &&
+            point.Address is OpcUaBindingAddress { NamespaceUri: LoopbackOpcUa.AddressSpace }) &&
+            writable.GetValueOrDefault("UnitMode[0].Action[3]") is
+                { WriteMode: "握手请求", Address: OpcUaBindingAddress { NodeIdentifier: stopAddress, ArrayIndex: 3 } },
+            "bindings use only the synthetic namespace and the stop binding targets b_Action[3]");
+        if (verifyParameters)
+            ValidateParameterBindings(points, writable);
+        else
+            Check(points.Length == 49 && writable.Count == 1, "only b_Action[3] is writable among the synthetic OPC UA bindings");
     }
 
     private static async Task VerifyOpcUa(Window window, IPlcRuntime runtime, LoopbackOpcUa server)

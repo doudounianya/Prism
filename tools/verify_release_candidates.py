@@ -15,7 +15,7 @@ from zipfile import BadZipFile, ZipFile
 from zlib import error as CompressionError
 
 from package_release_candidates import CANDIDATES, MANIFEST, ROOT, RUNTIME, check_inventory
-from plc_history_fixture import PROBE, run_opcua, run_rollback
+from plc_history_fixture import PROBE, run_opcua, run_parameters, run_rollback
 
 
 SOURCE_DIRECTORIES = ("Applications", "Framework", "Hardware", "examples", "tests", "tools")
@@ -185,14 +185,15 @@ def main():
     parser.add_argument("--restore-source", type=Path, help="Local NuGet source for offline builds.")
     parser.add_argument("--plc-history-baseline", type=Path, help="Trusted previous PLC HMI candidate ZIP for the desktop rollback check.")
     parser.add_argument("--plc-opcua", action="store_true", help="Run the packaged PLC HMI mode, IO reconnect and stop handshake checks over OPC UA loopback.")
+    parser.add_argument("--plc-parameters", action="store_true", help="Run the packaged PLC HMI axis and cylinder permissions checks over OPC UA loopback.")
     parser.add_argument("--mysql-bin", type=Path, help="MySQL Server 8 bin directory used to create the temporary PLC desktop fixture.")
     modes = parser.add_mutually_exclusive_group()
     modes.add_argument("--packages-only", action="store_true", help="Verify ZIPs without .NET builds or tests.")
     modes.add_argument("--desktop", action="store_true", help="Also run the two FlyScan WPF simulation probes from source.")
     args = parser.parse_args()
-    plc_desktop = bool(args.plc_history_baseline or args.plc_opcua)
+    plc_desktop = bool(args.plc_history_baseline or args.plc_opcua or args.plc_parameters)
     if plc_desktop != bool(args.mysql_bin) or (plc_desktop and args.packages_only):
-        parser.error("Use --mysql-bin with --plc-history-baseline or --plc-opcua and source verification enabled.")
+        parser.error("Use --mysql-bin with --plc-history-baseline, --plc-opcua or --plc-parameters and source verification enabled.")
     if plc_desktop and os.name != "nt":
         parser.error("The PLC desktop fixture requires Windows.")
     output = args.output.resolve()
@@ -209,6 +210,8 @@ def main():
         plc_fixtures.append(("plc-history-and-rollback", "plc-history", run_rollback, (args.plc_history_baseline.resolve(), candidate)))
     if args.plc_opcua:
         plc_fixtures.append(("plc-opcua-loopback", "plc-opcua", run_opcua, (candidate,)))
+    if args.plc_parameters:
+        plc_fixtures.append(("plc-parameter-permissions", "plc-parameters", run_parameters, (candidate,)))
     if args.packages_only:
         record(results, "source-checks", "notRun", detail="Package-only validation selected.")
     else:
@@ -223,7 +226,8 @@ def main():
     report = {"checks": results, "counts": counts, "passedSelectedChecks": counts["failed"] == 0,
               "separateAcceptance": {"plcDesktopAndRollback": "requiresFixture", "h0HardwareBench": "pending",
                                      "plcHistoryAndRollback": status_by_check.get("plc-history-and-rollback", "notRun"),
-                                     "plcOpcUaLoopback": status_by_check.get("plc-opcua-loopback", "notRun")}}
+                                     "plcOpcUaLoopback": status_by_check.get("plc-opcua-loopback", "notRun"),
+                                     "plcParameterPermissions": status_by_check.get("plc-parameter-permissions", "notRun")}}
     (output / "report.json").write_text(json.dumps(report, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     print(f"Selected offline checks: {counts['passed']} passed, {counts['failed']} failed, {counts['notRun']} not run.")
     return 1 if counts["failed"] else 0

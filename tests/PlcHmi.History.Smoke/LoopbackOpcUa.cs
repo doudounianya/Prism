@@ -1,11 +1,12 @@
 using System.Net;
 using System.Net.NetworkInformation;
 using System.Security.Cryptography.X509Certificates;
+using System.Text.Json;
 using Opc.Ua;
 using Opc.Ua.Security.Certificates;
 using Opc.Ua.Server;
 
-internal sealed class LoopbackOpcUa(int port) : IDisposable
+internal sealed class LoopbackOpcUa(int port, bool verifyParameters = false) : IDisposable
 {
     internal const string AddressSpace = "urn:prism:plc:opcua-test";
     private const string ApplicationUri = "urn:prism:plc:opcua-test:server";
@@ -48,7 +49,7 @@ internal sealed class LoopbackOpcUa(int port) : IDisposable
             TraceConfiguration = new TraceConfiguration(),
         };
         await configuration.Validate(ApplicationType.Server);
-        var replacement = new FixtureServer(reconnected);
+        var replacement = new FixtureServer(reconnected, verifyParameters);
         try
         {
             replacement.Start(configuration);
@@ -81,13 +82,13 @@ internal sealed class LoopbackOpcUa(int port) : IDisposable
         finally { certificate?.Dispose(); }
     }
 
-    private sealed class FixtureServer(bool reconnected) : StandardServer
+    private sealed class FixtureServer(bool reconnected, bool verifyParameters) : StandardServer
     {
         public FixtureNodes Nodes { get; private set; } = null!;
 
         protected override MasterNodeManager CreateMasterNodeManager(IServerInternal server, ApplicationConfiguration configuration)
         {
-            Nodes = new FixtureNodes(server, configuration, reconnected);
+            Nodes = new FixtureNodes(server, configuration, reconnected, verifyParameters);
             return new MasterNodeManager(server, configuration, null, Nodes);
         }
 
@@ -103,12 +104,14 @@ internal sealed class LoopbackOpcUa(int port) : IDisposable
     }
 }
 
-internal sealed class FixtureNodes(IServerInternal server, ApplicationConfiguration configuration, bool reconnected)
+internal sealed class FixtureNodes(IServerInternal server, ApplicationConfiguration configuration, bool reconnected, bool verifyParameters)
     : CustomNodeManager2(server, configuration, LoopbackOpcUa.AddressSpace)
 {
     internal const string StopBankNode = "Fixture.System.st_UnitMode[0].b_Action";
     private readonly Dictionary<string, BaseDataVariableState> values = new(StringComparer.Ordinal);
     private readonly List<bool> stopWrites = [];
+    private readonly List<(string Key, object Value)> parameterWrites = [];
+    private readonly Dictionary<string, ParameterPoint> writablePoints = new(StringComparer.Ordinal);
     private int rejectedWrites;
 
     public (bool[] Stop, int Rejected) WriteTrace()
@@ -121,12 +124,20 @@ internal sealed class FixtureNodes(IServerInternal server, ApplicationConfigurat
         lock (Lock) return ((bool[])values[StopBankNode].Value).ToArray();
     }
 
-    public void SetMode(short mode, short status)
+    public (string Key, object Value)[] ParameterWrites()
+    {
+        lock (Lock) return parameterWrites.ToArray();
+    }
+
+    public void SetMode(short mode, short status, bool debugRequest = false)
     {
         lock (Lock)
         {
             Set("i_Mode", mode);
             Set("i_Status", status);
+            var actions = ((bool[])values[StopBankNode].Value).ToArray();
+            actions[6] = debugRequest;
+            Set(StopBankNode, actions);
             var feedback = new bool[6];
             feedback[5] = status == 70;
             Set("b_Signal", feedback);
@@ -169,6 +180,16 @@ internal sealed class FixtureNodes(IServerInternal server, ApplicationConfigurat
             var output = new bool[16];
             output[0] = true;
             AddVariable(folder, "DO", output);
+            if (verifyParameters)
+            {
+                foreach (var point in ParameterPoint.All)
+                {
+                    bool writable = point.Command is not null || point.WriteMode is not null;
+                    AddVariable(folder, point.Node, point.InitialValue(),
+                        writable ? AccessLevels.CurrentReadOrWrite : AccessLevels.CurrentRead);
+                    if (writable) writablePoints.Add(point.Node, point);
+                }
+            }
             AddPredefinedNode(SystemContext, folder);
         }
     }
@@ -182,13 +203,22 @@ internal sealed class FixtureNodes(IServerInternal server, ApplicationConfigurat
                 var request = requests[index];
                 if (request.Processed || request.NodeId.NamespaceIndex != NamespaceIndex) continue;
                 request.Processed = true;
-                if (request.NodeId.Identifier is StopBankNode && request.IndexRange == "3" &&
+                if (request.NodeId.Identifier is StopBankNode && (request.IndexRange == "3" || verifyParameters && request.IndexRange == "6") &&
                     request.AttributeId == Attributes.Value && request.Value.Value is bool[] { Length: 1 } value)
                 {
                     var bank = ((bool[])values[StopBankNode].Value).ToArray();
-                    bank[3] = value[0];
+                    int bit = request.IndexRange == "3" ? 3 : 6;
+                    bank[bit] = value[0];
                     Set(StopBankNode, bank);
-                    stopWrites.Add(value[0]);
+                    if (bit == 3) stopWrites.Add(value[0]);
+                    results[index] = ServiceResult.Good;
+                }
+                else if (request.NodeId.Identifier is string node && writablePoints.TryGetValue(node, out var point) &&
+                    string.IsNullOrEmpty(request.IndexRange) && request.AttributeId == Attributes.Value &&
+                    request.Value.Value is { } scalar && scalar.GetType() == values[node].Value.GetType())
+                {
+                    Set(node, scalar);
+                    parameterWrites.Add((point.Key, scalar));
                     results[index] = ServiceResult.Good;
                 }
                 else
@@ -222,5 +252,27 @@ internal sealed class FixtureNodes(IServerInternal server, ApplicationConfigurat
         if (value is Array array) node.ArrayDimensions = new Opc.Ua.ReadOnlyList<uint>([(uint)array.Length]);
         values.Add(name, node);
         folder.AddChild(node);
+    }
+}
+
+internal sealed record ParameterPoint(string Key, string Type, JsonElement Initial, string? Command, string? WriteMode, bool WriteOnly)
+{
+    public string Node => "Fixture." + Key;
+
+    public object InitialValue() => Type switch
+    {
+        "Bool" => Initial.GetBoolean(),
+        "Double" => Initial.GetDouble(),
+        "Int16" => Initial.GetInt16(),
+        "Int32" => Initial.GetInt32(),
+        _ => throw new InvalidOperationException($"Unsupported fixture type: {Type}."),
+    };
+
+    public static IReadOnlyList<ParameterPoint> All { get; } = Load();
+
+    private static ParameterPoint[] Load()
+    {
+        using var json = typeof(ParameterPoint).Assembly.GetManifestResourceStream("ParameterPoints.json")!;
+        return JsonSerializer.Deserialize<ParameterPoint[]>(json)!;
     }
 }
