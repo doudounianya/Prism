@@ -1,4 +1,4 @@
-"""Synthetic MySQL and packaged desktop fixture for offline PLC HMI rollback checks."""
+"""Isolated databases, workbooks and installs for packaged PLC HMI checks."""
 
 from contextlib import contextmanager
 import hashlib
@@ -15,6 +15,14 @@ from zipfile import ZipFile
 PROBE = "PlcHmi.History.Smoke"
 SCHEMA = "prism_fixture"
 RESTORED = "prism_fixture_restored"
+OPCUA_NAMESPACE = "urn:prism:plc:opcua-test"
+STOP = "UnitMode[0].Action[3]"
+
+
+def loopback_port():
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as available:
+        available.bind(("127.0.0.1", 0))
+        return available.getsockname()[1]
 
 
 @contextmanager
@@ -31,9 +39,7 @@ def mysql_fixture(bin_directory, work, evidence, env):
         subprocess.run([*common, "--initialize-insecure"], cwd=work, env=env, stdout=output,
                        stderr=subprocess.STDOUT, check=True, timeout=60, creationflags=hidden)
 
-    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as available:
-        available.bind(("127.0.0.1", 0))
-        port = available.getsockname()[1]
+    port = loopback_port()
     with log.open("wb") as output:
         process = subprocess.Popen([*common, "--bind-address=127.0.0.1", f"--port={port}", "--mysqlx=OFF"],
                                    cwd=work, env=env, stdout=output, stderr=subprocess.STDOUT, creationflags=hidden)
@@ -67,24 +73,76 @@ def mysql_fixture(bin_directory, work, evidence, env):
             process.wait(timeout=10)
 
 
-def make_workbook(template, target):
+def worksheet_rows(sheet, column):
+    header = next(row for row in sheet.iter_rows(min_row=1, max_row=8) if {"启用", column} <= {cell.value for cell in row})
+    columns = {cell.value: cell.column for cell in header}
+    return columns, range(header[0].row + 1, sheet.max_row + 1)
+
+
+def set_cells(sheet, row, columns, values):
+    for name, value in values.items():
+        sheet.cell(row, columns[name]).value = value
+
+
+def set_loopback_points(book):
+    points = {f"UnitMode[0].{label}": (node, None, "Int16") for label, node in (("Mode", "i_Mode"), ("Status", "i_Status"))}
+    for bank, count in (("Action", 9), ("Signal", 6)):
+        node = "Fixture.System.st_UnitMode[0].b_Action" if bank == "Action" else "b_Signal"
+        points.update({f"UnitMode[0].{bank}[{n}]": (node, n, "Bool") for n in range(count)})
+    for bank in ("DI", "DO"):
+        points.update({f"IO.{bank}[0].{n:02d}": (bank, n, "Bool") for n in range(16)})
+
+    selected = set()
+    selected_sheets = {"设备状态_OpcUa", "IO_OpcUa"}
+    for sheet in book.worksheets:
+        if not sheet.title.endswith(("_OpcUa", "_Modbus")):
+            continue
+        columns, rows = worksheet_rows(sheet, "HMI变量标识")
+        for row in rows:
+            key = sheet.cell(row, columns["HMI变量标识"]).value
+            if not key:
+                continue
+            device = sheet.cell(row, columns["PLC编号"]).value
+            active = sheet.title in selected_sheets and device == "PLC01" and key in points
+            sheet.cell(row, columns["启用"]).value = "是" if active else "否"
+            if not active:
+                continue
+            if key in selected:
+                raise ValueError(f"Duplicate OPC UA fixture point: {key}")
+            selected.add(key)
+            node, index, data_type = points[key]
+            set_cells(sheet, row, columns, {"命名空间URI": OPCUA_NAMESPACE, "节点标识": "s=" + node,
+                                           "OPC UA数组索引": index, "数据类型": data_type, "比例": 1, "偏移": 0,
+                                           "布尔取反": "否", "访问权限": "RW" if key == STOP else "R",
+                                           "采集组": "PAGE.Active", "写入方式": "握手请求" if key == STOP else "只读"})
+    if selected != points.keys():
+        raise ValueError(f"Missing OPC UA fixture points: {', '.join(sorted(points.keys() - selected))}")
+
+
+def make_workbook(template, target, opcua_port=None):
     try:
         from openpyxl import load_workbook
     except ImportError as error:
-        raise RuntimeError("Install openpyxl in the Python environment to run the PLC history fixture.") from error
+        raise RuntimeError("Install openpyxl in the Python environment to run the PLC desktop fixture.") from error
 
     book = load_workbook(template)
     try:
         sheet = book["设备连接"]
-        header = next(row for row in sheet.iter_rows(min_row=1, max_row=8) if {"启用", "PLC编号"} <= {cell.value for cell in row})
-        columns = {cell.value: cell.column for cell in header}
-        devices = [index for index in range(header[0].row + 1, sheet.max_row + 1) if sheet.cell(index, columns["PLC编号"]).value]
+        columns, rows = worksheet_rows(sheet, "PLC编号")
+        devices = [row for row in rows if sheet.cell(row, columns["PLC编号"]).value]
         if not devices:
             raise ValueError("The fixture workbook has no device rows.")
+        enabled = [row for row in devices if opcua_port and sheet.cell(row, columns["PLC编号"]).value == "PLC01"]
+        if opcua_port and len(enabled) != 1:
+            raise ValueError("The OPC UA fixture requires one PLC01 device row in the workbook.")
         for row in devices:
-            for name, value in {"启用": "否", "OPC UA端点": "opc.tcp://127.0.0.1:1/offline",
-                                "凭据引用": None, "Modbus IP": "127.0.0.1", "Modbus端口": 1}.items():
-                sheet.cell(row, columns[name]).value = value
+            set_cells(sheet, row, columns, {"启用": "否", "OPC UA端点": "opc.tcp://127.0.0.1:1/offline",
+                                           "凭据引用": None, "Modbus IP": "127.0.0.1", "Modbus端口": 1})
+        if enabled:
+            set_cells(sheet, enabled[0], columns, {"启用": "是", "协议": "OpcUa", "变量Sheet后缀": "_OpcUa",
+                                                  "OPC UA端点": f"opc.tcp://127.0.0.1:{opcua_port}/CRT",
+                                                  "安全模式": "None", "安全策略": "None"})
+            set_loopback_points(book)
         book.save(target)
     finally:
         book.close()
@@ -103,21 +161,33 @@ def prepare_install(archive, destination, work, binaries, verify_package):
 
 
 def run_rollback(source, work, evidence, env, mysql_bin, baseline, candidate, verify_package):
+    return run_desktop(source, work, evidence, env, mysql_bin, candidate, verify_package, baseline=baseline)
+
+
+def run_opcua(source, work, evidence, env, mysql_bin, candidate, verify_package):
+    return run_desktop(source, work, evidence, env, mysql_bin, candidate, verify_package)
+
+
+def run_desktop(source, work, evidence, env, mysql_bin, candidate, verify_package, *, baseline=None):
     work.mkdir()
     evidence.mkdir()
     binaries = source / "tests" / PROBE / "bin/Release/net8.0-windows"
     workbook_rel = Path("Config/PLC/CRT_HMI_PLC变量绑定配置.xlsx")
     template = source / "Applications/PlcHmi/Company.PlcHmi.Shell" / workbook_rel
     config_backup = work / workbook_rel.name
-    make_workbook(template, config_backup)
+    opcua_port = loopback_port() if baseline is None else None
+    make_workbook(template, config_backup, opcua_port)
     probe_env = {name: value for name, value in env.items() if not name.upper().startswith(("PRISM_DATABASE_", "MYSQL_"))}
     probe_env["MYSQL_TEST_LOGIN_FILE"] = str(work / "test-login.cnf")
+    if opcua_port:
+        probe_env["CRT_HMI_PLC_WRITES"] = "1"
     account_secret, database_secret = secrets.token_hex(16), secrets.token_hex(16)
     installations = {}
-    for name, archive in (("baseline", baseline), ("candidate", candidate), ("rollback", baseline)):
+    phases = (("opcua", candidate),) if baseline is None else (("baseline", baseline), ("candidate", candidate), ("rollback", baseline))
+    for name, archive in phases:
         destination = work / name
         installations[name] = destination, prepare_install(archive, destination, work, binaries, verify_package)
-    if installations["baseline"][1] != installations["rollback"][1]:
+    if baseline is not None and installations["baseline"][1] != installations["rollback"][1]:
         raise ValueError("The baseline ZIP changed before the rollback copy was made.")
     observations = []
     with mysql_fixture(mysql_bin, work, evidence, probe_env) as (port, mysql):
@@ -149,6 +219,7 @@ def run_rollback(source, work, evidence, env, mysql_bin, baseline, candidate, ve
             }), encoding="utf-8")
             (install / "history-fixture.json").write_text(json.dumps({
                 "AccountSecret": account_secret, "WorkbookSha256": hashlib.sha256(workbook.read_bytes()).hexdigest().upper(),
+                "OpcUaPort": opcua_port,
             }), encoding="utf-8")
             log = evidence / f"{name}.log"
             with log.open("wb") as stream:
@@ -160,15 +231,18 @@ def run_rollback(source, work, evidence, env, mysql_bin, baseline, candidate, ve
             observations.append({"phase": name, "archiveSha256": digest, "assertions": sum(line.startswith("PASS ") for line in lines),
                                  "log": log.name})
 
-        run_phase("baseline", SCHEMA, "seed")
-        with (evidence / "backup.log").open("wb") as log:
-            snapshot = subprocess.check_output(mysql("mysqldump", "--single-transaction", "--skip-dump-date", "--no-tablespaces",
-                                                     "--set-gtid-purged=OFF", SCHEMA), cwd=work, env=probe_env, stderr=log, timeout=60)
-        run_phase("candidate", SCHEMA, "read")
-        create_schema(RESTORED)
-        execute("restore", snapshot, RESTORED)
-        run_phase("rollback", RESTORED, "read")
-
-    result = {"status": "passed", "phases": observations, "backupSha256": hashlib.sha256(snapshot).hexdigest()}
+        result = {"status": "passed", "phases": observations}
+        if baseline is None:
+            run_phase("opcua", SCHEMA, "opcua")
+        else:
+            run_phase("baseline", SCHEMA, "seed")
+            with (evidence / "backup.log").open("wb") as log:
+                snapshot = subprocess.check_output(mysql("mysqldump", "--single-transaction", "--skip-dump-date", "--no-tablespaces",
+                                                         "--set-gtid-purged=OFF", SCHEMA), cwd=work, env=probe_env, stderr=log, timeout=60)
+            run_phase("candidate", SCHEMA, "read")
+            create_schema(RESTORED)
+            execute("restore", snapshot, RESTORED)
+            run_phase("rollback", RESTORED, "read")
+            result["backupSha256"] = hashlib.sha256(snapshot).hexdigest()
     (evidence / "report.json").write_text(json.dumps(result, indent=2) + "\n", encoding="utf-8")
     return result

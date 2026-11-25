@@ -15,7 +15,7 @@ from zipfile import BadZipFile, ZipFile
 from zlib import error as CompressionError
 
 from package_release_candidates import CANDIDATES, MANIFEST, ROOT, RUNTIME, check_inventory
-from plc_history_fixture import PROBE, run_rollback
+from plc_history_fixture import PROBE, run_opcua, run_rollback
 
 
 SOURCE_DIRECTORIES = ("Applications", "Framework", "Hardware", "examples", "tests", "tools")
@@ -122,7 +122,7 @@ def source_fingerprint(source):
     return {"files": len(files), "sha256": digest.hexdigest()}
 
 
-def verify_source(results, output, restore_source, desktop, plc_history=None):
+def verify_source(results, output, restore_source, desktop, mysql_bin, plc_fixtures):
     with TemporaryDirectory(prefix="prism-verify-") as workspace:
         source = Path(workspace) / "src"
         copy_source(source)
@@ -161,21 +161,21 @@ def verify_source(results, output, restore_source, desktop, plc_history=None):
                 run(suite, ["dotnet", "run", "--project", f"tests/{suite}/{suite}.csproj", "-c", "Release",
                             *msbuild, "--", *arguments])
 
-        if plc_history:
-            name = "plc-history-and-rollback"
+        if plc_fixtures:
             build_probe = ["dotnet", "build", f"tests/{PROBE}/{PROBE}.csproj", "-c", "Release", "-m:1", *msbuild]
-            if not release_built or not run("build-plc-history-probe", build_probe):
-                record(results, name, "notRun", detail="The Release build or PLC history probe build failed.")
-                return
-            mysql_bin, baseline, candidate = plc_history
-            evidence = output / "plc-history"
-            try:
-                verified = run_rollback(source, Path(workspace) / "plc", evidence, env, mysql_bin, baseline, candidate, verify_package)
-                record(results, name, "passed", details=(evidence / "report.json").relative_to(output).as_posix(),
-                       assertions=sum(phase["assertions"] for phase in verified["phases"]))
-            except (OSError, ValueError, KeyError, StopIteration, RuntimeError, BadZipFile,
-                    CompressionError, subprocess.SubprocessError) as error:
-                record(results, name, "failed", detail=str(error), logs=evidence.relative_to(output).as_posix())
+            ready = release_built and run("build-plc-history-probe", build_probe)
+            for name, folder, replay, arguments in plc_fixtures:
+                if not ready:
+                    record(results, name, "notRun", detail="The Release build or PLC desktop probe build failed.")
+                    continue
+                evidence = output / folder
+                try:
+                    verified = replay(source, Path(workspace) / folder, evidence, env, mysql_bin, *arguments, verify_package)
+                    record(results, name, "passed", details=(evidence / "report.json").relative_to(output).as_posix(),
+                           assertions=sum(phase["assertions"] for phase in verified["phases"]))
+                except (OSError, ValueError, KeyError, StopIteration, RuntimeError, BadZipFile,
+                        CompressionError, subprocess.SubprocessError) as error:
+                    record(results, name, "failed", detail=str(error), logs=evidence.relative_to(output).as_posix())
 
 
 def main():
@@ -184,15 +184,17 @@ def main():
     parser.add_argument("--output", required=True, type=Path, help="New directory for reports and logs.")
     parser.add_argument("--restore-source", type=Path, help="Local NuGet source for offline builds.")
     parser.add_argument("--plc-history-baseline", type=Path, help="Trusted previous PLC HMI candidate ZIP for the desktop rollback check.")
-    parser.add_argument("--mysql-bin", type=Path, help="MySQL Server 8 bin directory used to create the temporary history fixture.")
+    parser.add_argument("--plc-opcua", action="store_true", help="Run the packaged PLC HMI mode, IO reconnect and stop handshake checks over OPC UA loopback.")
+    parser.add_argument("--mysql-bin", type=Path, help="MySQL Server 8 bin directory used to create the temporary PLC desktop fixture.")
     modes = parser.add_mutually_exclusive_group()
     modes.add_argument("--packages-only", action="store_true", help="Verify ZIPs without .NET builds or tests.")
     modes.add_argument("--desktop", action="store_true", help="Also run the two FlyScan WPF simulation probes from source.")
     args = parser.parse_args()
-    if bool(args.plc_history_baseline) != bool(args.mysql_bin) or (args.plc_history_baseline and args.packages_only):
-        parser.error("Use --plc-history-baseline and --mysql-bin together with source verification enabled.")
-    if args.plc_history_baseline and os.name != "nt":
-        parser.error("The PLC history desktop fixture requires Windows.")
+    plc_desktop = bool(args.plc_history_baseline or args.plc_opcua)
+    if plc_desktop != bool(args.mysql_bin) or (plc_desktop and args.packages_only):
+        parser.error("Use --mysql-bin with --plc-history-baseline or --plc-opcua and source verification enabled.")
+    if plc_desktop and os.name != "nt":
+        parser.error("The PLC desktop fixture requires Windows.")
     output = args.output.resolve()
     if output.exists():
         parser.error("--output must refer to a new directory.")
@@ -201,21 +203,27 @@ def main():
     results = []
     packages = args.packages.resolve()
     verify_packages(packages, results)
-    plc_history = (args.mysql_bin.resolve(), args.plc_history_baseline.resolve(),
-                   packages / f"{CANDIDATES['PlcHmi']}.zip") if args.plc_history_baseline else None
+    candidate = packages / f"{CANDIDATES['PlcHmi']}.zip"
+    plc_fixtures = []
+    if args.plc_history_baseline:
+        plc_fixtures.append(("plc-history-and-rollback", "plc-history", run_rollback, (args.plc_history_baseline.resolve(), candidate)))
+    if args.plc_opcua:
+        plc_fixtures.append(("plc-opcua-loopback", "plc-opcua", run_opcua, (candidate,)))
     if args.packages_only:
         record(results, "source-checks", "notRun", detail="Package-only validation selected.")
     else:
         try:
-            verify_source(results, output, args.restore_source.resolve() if args.restore_source else None, args.desktop, plc_history)
+            verify_source(results, output, args.restore_source.resolve() if args.restore_source else None, args.desktop,
+                          args.mysql_bin.resolve() if args.mysql_bin else None, plc_fixtures)
         except OSError as error:
             record(results, "source-workspace", "failed", detail=str(error))
 
     counts = {status: sum(item["status"] == status for item in results) for status in ("passed", "failed", "notRun")}
+    status_by_check = {item["check"]: item["status"] for item in results}
     report = {"checks": results, "counts": counts, "passedSelectedChecks": counts["failed"] == 0,
               "separateAcceptance": {"plcDesktopAndRollback": "requiresFixture", "h0HardwareBench": "pending",
-                                     "plcHistoryAndRollback": next((item["status"] for item in results
-                                                                   if item["check"] == "plc-history-and-rollback"), "notRun")}}
+                                     "plcHistoryAndRollback": status_by_check.get("plc-history-and-rollback", "notRun"),
+                                     "plcOpcUaLoopback": status_by_check.get("plc-opcua-loopback", "notRun")}}
     (output / "report.json").write_text(json.dumps(report, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     print(f"Selected offline checks: {counts['passed']} passed, {counts['failed']} failed, {counts['notRun']} not run.")
     return 1 if counts["failed"] else 0

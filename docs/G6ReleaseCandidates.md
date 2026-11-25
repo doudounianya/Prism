@@ -27,9 +27,7 @@ python tools/verify_release_candidates.py --packages C:/Temp/PrismCandidates --o
 
 入口按清单复核两个现有 ZIP 的路径、文件哈希、模块隔离和公共界面程序集一致性，再在临时源码副本上运行分层检查、Debug 与 Release 构建、运行时及权限回归、13 轴配置、飞拍流程和 H0 离线测试。使用 `--packages-only` 可只核对 ZIP。交互式 Windows 会话可加 `--desktop` 运行源码构建的飞拍界面和共享 IO 仿真。离线 NuGet 恢复沿用 `--restore-source`。
 
-`report.json` 分别记录安装包哈希、源码快照哈希、各项通过和失败、未运行项及日志位置。任一已选检查失败时返回退出码 `1`。完整 PLC HMI 通讯验收使用隔离数据库及 OPC UA 夹具，H0 实机验收仍为待验证。
-
-G6 首次离线复跑的 17 项检查均通过。两份重建包的清单核验和损坏包的失败用例已保留在 [G6 离线复跑证据](verification/2026-11-25-g6-replay.zip)。
+`report.json` 分别记录安装包哈希、源码快照哈希、各项通过和失败、未运行项及日志位置。任一已选检查失败时返回退出码 `1`。PLC HMI 的历史回退和 OPC UA 回环均可按需复跑。H0 实机验收仍为待验证。
 
 ### PLC HMI 历史恢复与回退
 
@@ -41,9 +39,27 @@ python tools/verify_release_candidates.py --packages C:/Temp/PrismCandidates --o
 
 工装在独立临时目录初始化只监听 `127.0.0.1` 的 MySQL 实例。校验和解包后，按旧包、候选包、恢复备份后回退旧包的顺序启动 PLC HMI。旧包首次运行生成合成测试账号，候选和回退阶段均用原账号重新登录。三轮核对同一条报警及 60 秒有效观测时长，并核对生产日报总量 58 件和趋势的白班 41 件、夜班 17 件。回退使用单独恢复的测试库。测试结束关闭 MySQL 实例。
 
-`plc-history/report.json` 记录三个阶段各自使用的包哈希、检查数、日志和 SQL 备份哈希。工作簿中的 PLC 连接全部禁用，三轮确认实际加载了这份配置。该用例覆盖打包后的登录、只读状态、历史查询、回退和退出。有 OPC UA 通讯的 PLC HMI 桌面验收使用原回环夹具。
+`plc-history/report.json` 记录三个阶段各自使用的包哈希、检查数、日志和 SQL 备份哈希。工作簿中的 PLC 连接全部禁用，三轮确认实际加载了这份配置。该用例覆盖打包后的登录、只读状态、历史查询、回退和退出。
 
 2026-11-25 用原 G6 包和重新构建的候选包完成演练。旧包、候选、回退三轮分别通过 20、19、19 项断言。统一入口的 19 项检查全部通过。原始 SQL 备份随本次临时环境清理，证据保留备份哈希和实际查询结果。 [PLC HMI 历史恢复与回退证据](verification/2026-11-25-plc-history-rollback.zip)
+
+### PLC HMI OPC UA 回环
+
+在交互式 Windows 会话中，为统一入口传入 `--plc-opcua` 与本机 MySQL Server 8 的 `bin` 目录。可同时加 `--plc-history-baseline` 复跑历史回退。两项使用独立临时配置和 MySQL 实例，Python 环境沿用 `openpyxl`。
+
+```powershell
+python tools/verify_release_candidates.py --packages C:/Temp/PrismCandidates --output C:/Temp/PrismOpcUa --plc-opcua --mysql-bin 'C:/Program Files/MySQL/MySQL Server 8.0/bin'
+```
+
+工装校验并解包 PLC HMI 候选包，生成只启用一个回环设备的测试工作簿，核对唯一可写绑定为 `b_Action[3]`。OPC UA 测试服务使用 `127.0.0.1` 上的临时端口，并检查实际监听地址。用例依次验证以下行为。
+
+- 实际模式和八种状态反馈更新模式图。稳定反馈保留人工选中的页签，模式变化时保留当前顶层页面。
+- 用界面停止按钮的按住和释放键事件发出 `True`、`False`。服务端分别记录一次写入，界面读回两次结果。重复键事件不多发，邻位保持原值。
+- DI 和 DO 页面只读。断线时当前 IO 变为未知。恢复后连接代次递增，页面显示新会话的 DI 值，测试服务未收到旧停止握手的重放。
+
+总报告的 `plcOpcUaLoopback` 记录本项结果，`plcDesktopAndRollback` 继续记录全量桌面矩阵的独立夹具要求。`plc-opcua/report.json` 记录候选包哈希、断言数量和详细日志。测试在专用回环服务结束后关闭临时 MySQL。
+
+2026-11-25 使用重新构建的候选包完成回环复跑，44 项断言通过。统一入口合并历史回退、飞拍界面和流程后共 20 项检查通过。 [OPC UA 回环验证记录](verification/2026-11-25-plc-opcua-loopback.zip)
 
 ## 配置和数据恢复
 

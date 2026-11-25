@@ -7,6 +7,8 @@
     <Nullable>enable</Nullable>
   </PropertyGroup>
   <ItemGroup>
+    <PackageReference Include="OPCFoundation.NetStandard.Opc.Ua.Server" Version="1.5.374.158" />
+    <ProjectReference Include="../../Applications/PlcHmi/Company.PlcHmi.Configuration/Company.PlcHmi.Configuration.csproj" />
     <ProjectReference Include="../../Applications/PlcHmi/Company.PlcHmi.Shell/Company.PlcHmi.Shell.csproj" />
     <ProjectReference Include="../../Applications/PlcHmi/Company.PlcHmi.Main/Company.PlcHmi.Main.csproj" />
   </ItemGroup>
