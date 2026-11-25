@@ -27,9 +27,23 @@ python tools/verify_release_candidates.py --packages C:/Temp/PrismCandidates --o
 
 入口按清单复核两个现有 ZIP 的路径、文件哈希、模块隔离和公共界面程序集一致性，再在临时源码副本上运行分层检查、Debug 与 Release 构建、运行时及权限回归、13 轴配置、飞拍流程和 H0 离线测试。使用 `--packages-only` 可只核对 ZIP。交互式 Windows 会话可加 `--desktop` 运行源码构建的飞拍界面和共享 IO 仿真。离线 NuGet 恢复沿用 `--restore-source`。
 
-`report.json` 分别记录安装包哈希、源码快照哈希、各项通过和失败、未运行项及日志位置。任一已选检查失败时返回退出码 `1`。PLC HMI 桌面和回退验收仍使用隔离数据库及 OPC UA 夹具，H0 实机验收仍为待验证。
+`report.json` 分别记录安装包哈希、源码快照哈希、各项通过和失败、未运行项及日志位置。任一已选检查失败时返回退出码 `1`。完整 PLC HMI 通讯验收使用隔离数据库及 OPC UA 夹具，H0 实机验收仍为待验证。
 
-本轮离线复跑的 17 项检查均通过。两份重建包的清单核验和损坏包的失败用例已保留在 [G6 离线复跑证据](verification/2026-11-25-g6-replay.zip)。
+G6 首次离线复跑的 17 项检查均通过。两份重建包的清单核验和损坏包的失败用例已保留在 [G6 离线复跑证据](verification/2026-11-25-g6-replay.zip)。
+
+### PLC HMI 历史恢复与回退
+
+在交互式 Windows 会话中，使用同一入口传入上一版自有 PLC HMI 包和本机 MySQL Server 8 的 `bin` 目录。Python 环境需要 `openpyxl` 用于生成测试工作簿。
+
+```powershell
+python tools/verify_release_candidates.py --packages C:/Temp/PrismCandidates --output C:/Temp/PrismVerification --plc-history-baseline C:/Temp/Previous/PlcHmi-ReleaseCandidate.zip --mysql-bin 'C:/Program Files/MySQL/MySQL Server 8.0/bin'
+```
+
+工装在独立临时目录初始化只监听 `127.0.0.1` 的 MySQL 实例。校验和解包后，按旧包、候选包、恢复备份后回退旧包的顺序启动 PLC HMI。旧包首次运行生成合成测试账号，候选和回退阶段均用原账号重新登录。三轮核对同一条报警及 60 秒有效观测时长，并核对生产日报总量 58 件和趋势的白班 41 件、夜班 17 件。回退使用单独恢复的测试库。测试结束关闭 MySQL 实例。
+
+`plc-history/report.json` 记录三个阶段各自使用的包哈希、检查数、日志和 SQL 备份哈希。工作簿中的 PLC 连接全部禁用，三轮确认实际加载了这份配置。该用例覆盖打包后的登录、只读状态、历史查询、回退和退出。有 OPC UA 通讯的 PLC HMI 桌面验收使用原回环夹具。
+
+2026-11-25 用原 G6 包和重新构建的候选包完成演练。旧包、候选、回退三轮分别通过 20、19、19 项断言。统一入口的 19 项检查全部通过。原始 SQL 备份随本次临时环境清理，证据保留备份哈希和实际查询结果。 [PLC HMI 历史恢复与回退证据](verification/2026-11-25-plc-history-rollback.zip)
 
 ## 配置和数据恢复
 
