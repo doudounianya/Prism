@@ -70,6 +70,7 @@ dotnet run --project tests/Motion.Configuration.Smoke/Motion.Configuration.Smoke
 - G1 至 G4 按上表补上公共页面契约、双宿主界面、飞拍时序及业务数据用例，放入同一个自动验证入口。记录每项执行、跳过与失败的数量，必测项跳过即该阶段未通过。软硬件配置、测试数据和应用版本进入同一次记录。
 - 对每个用例留存一行：用例编号、源码版本或快照哈希、配置版本、环境及设备版本、步骤、预期、实测、证据位置、执行人、复核人、结论、关联缺陷。自动用例留日志或 JSON，UI 用例留截图和命令记录，实机用例留原始波形和编码器轨迹。
 - 发布时在干净目录检验模块和驱动清单，并用备份做一次实际恢复。回退后重新验证登录、历史查询、模式反馈及设备连接配置。测试数据库迁移采用副本，留存版本和恢复记录。
+- `tools/verify_release_candidates.py` 复核现有发布 ZIP 并在临时源码副本重跑离线回归。参数和报告字段见 [G6 离线复跑](G6ReleaseCandidates.md#重跑离线验收)。PLC HMI 桌面和回退验收沿用专用夹具。
 
 ## 当前工程起点
 
@@ -82,5 +83,7 @@ G3 的手动示教、配方和双组飞拍已完成离线验收，100 次仿真�
 G4 的共享业务页面、飞拍历史和 PLC HMI 升级及回退已完成离线验收，见 [G4 验收记录](G4Verification.md)。
 
 H0 已完成 SDK 导出、13 轴配置和波形判定的离线核验，见 [H0 离线核验记录](H0Verification.md)。H0 实机签收与 G5 的工艺限值确认仍待完成。
+
+G6 的 PLC HMI 和飞拍仿真候选已完成独立打包及离线恢复验证，见 [发布候选和验收记录](G6ReleaseCandidates.md)。飞拍生产版等待实机阶段。
 
 工程依据见 [现有分层约定](../Architecture.md)、[操作与生命周期](../LifecycleOperations.md)、[可配置运动轴](../Hardware/MOTION_CONFIGURATION.md) 和 [驱动能力](../Hardware/CONTROL_CARD_README.md)。

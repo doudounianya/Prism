@@ -15,7 +15,7 @@
        后台程序集在宿主根目录继续存在；保留副本便于恢复，避免重复发现同名模块。 -->
   <Target Name="RetireLegacyModuleCopies" BeforeTargets="Build" Condition="'$(IsPlcHmiHost)' == 'true' And '$(SkipModuleDeployment)' != 'true'">
     <ItemGroup>
-      <_LegacyModuleCopy Include="$(TargetDir)Modules\Company.Database.SqlSugar.dll;$(TargetDir)Modules\Company.PlcHmi.Plc.dll;$(TargetDir)Modules\Company.PlcHmi.Persistence.dll;$(TargetDir)Modules\Company.Hardware.ControlCard.dll;$(TargetDir)Modules\Company.Hardware.ControlCard.None.dll;$(TargetDir)$(TargetDir)Modules\Company.Hardware.ControlCard.INOVANCE.dll" />
+      <_LegacyModuleCopy Include="$(TargetDir)Modules\Company.Database.SqlSugar.dll;$(TargetDir)Modules\Company.PlcHmi.Plc.dll;$(TargetDir)Modules\Company.PlcHmi.Persistence.dll;$(TargetDir)Modules\Company.Hardware.ControlCard.dll;$(TargetDir)Modules\Company.Hardware.ControlCard.None.dll;$(TargetDir)Modules\Company.Hardware.ControlCard.INOVANCE.dll" />
       <_ExistingLegacyModuleCopy Include="@(_LegacyModuleCopy)" Condition="Exists('%(_LegacyModuleCopy.Identity)')" />
     </ItemGroup>
     <MakeDir Directories="$(TargetDir)RetiredModules" Condition="'@(_ExistingLegacyModuleCopy)' != ''" />
@@ -35,7 +35,7 @@
   </Target>
 
   <!-- 首次构建恢复对应配置的迁移快照；已经存在的现场文件绝不覆盖。 -->
-  <Target Name="SeedPlcHmiConfiguration" BeforeTargets="PrepareForBuild" Condition="'$(IsPlcHmiHost)' == 'true'">
+  <Target Name="SeedPlcHmiConfiguration" BeforeTargets="PrepareForBuild" Condition="'$(IsPlcHmiHost)' == 'true' And '$(SkipPlcHmiConfigurationSeed)' != 'true'">
     <ItemGroup>
       <_PlcHmiSeed Include="$(MSBuildThisFileDirectory)Applications\PlcHmi\ConfigurationProfiles\$(Configuration)\**\*" />
     </ItemGroup>
