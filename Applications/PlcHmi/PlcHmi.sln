@@ -7,7 +7,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "PlcHmi", "PlcHmi", "{02EA68
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Framework", "Framework", "{A3BCACF1-333A-4DEB-8AC0-AD8C63175028}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Company.PlcHmi.Shell", "Company.PlcHmi.Shell\Company.PlcHmi.Shell.csproj", "{F1E8C9AE-05B7-4B2B-8C73-A571344DE52F}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Company.Shell", "..\..\Company.Shell\Company.Shell.csproj", "{F1E8C9AE-05B7-4B2B-8C73-A571344DE52F}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Company.PlcHmi.Shared", "Company.PlcHmi.Shared\Company.PlcHmi.Shared.csproj", "{703E78F7-B9D6-4527-ADC5-F5AE1251B323}"
 EndProject

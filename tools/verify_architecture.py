@@ -11,7 +11,7 @@ args = parser.parse_args()
 root = Path(__file__).resolve().parents[1]
 projects = {}
 errors = []
-for area in ('Framework', 'Hardware', 'Applications'):
+for area in ('Framework', 'Hardware', 'Applications', 'Company.Shell'):
     for path in (root / area).rglob('*.csproj'):
         if any(p in ('obj', 'bin') for p in path.relative_to(root).parts): continue
         xml = ET.parse(path).getroot()
@@ -55,7 +55,7 @@ for path, p in projects.items():
         q = projects[ref]
         if p['path'].startswith('Framework/') and not q['path'].startswith('Framework/'):
             errors.append(f"公共框架反向依赖：{p['name']} -> {q['name']}")
-        if p['path'].startswith('Hardware/') and q['path'].startswith('Applications/'):
+        if p['path'].startswith('Hardware/') and q['path'].startswith(('Applications/', 'Company.Shell/')):
             errors.append(f"硬件反向依赖应用：{p['name']} -> {q['name']}")
         if p['name'] in ('Company.PlcHmi.Shared','Company.Platform.Shared') and q['path'].startswith('Applications/'):
             errors.append(f"共享契约依赖应用实现：{p['name']} -> {q['name']}")
@@ -63,6 +63,8 @@ for path, p in projects.items():
     if application[0] == 'Applications':
         for dep in closure(path) - {path}:
             q = projects[dep]
+            if q['path'].startswith('Company.Shell/'):
+                errors.append(f"应用反向依赖入口：{p['name']} -> {q['name']}")
             dependency_application = q['path'].split('/')[:2]
             if dependency_application[0] == 'Applications' and dependency_application != application:
                 errors.append(f"产品跨应用依赖：{p['name']} -> {q['name']}")

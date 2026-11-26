@@ -90,10 +90,10 @@ def main():
         staging = Path(temporary) / "packages"
         staging.mkdir()
         for app, name in CANDIDATES.items():
-            shell = f"Company.{app}.Shell"
             publish = Path(temporary) / app
-            command = ["dotnet", "publish", f"Applications/{app}/{shell}/{shell}.csproj", "-c", "Release",
-                       "--self-contained", "false", "-m:1", "-p:SkipPlcHmiConfigurationSeed=true", "-o", str(publish)]
+            command = ["dotnet", "publish", "Company.Shell/Company.Shell.csproj", "-c", "Release",
+                       f"-p:CompanyProduct={app}", "--self-contained", "false", "-m:1",
+                       "-p:SkipPlcHmiConfigurationSeed=true", "-o", str(publish)]
             if args.restore_source:
                 command.extend((f"-p:RestoreSources={args.restore_source.resolve()}", "-p:NuGetAudit=false"))
             subprocess.run(command, cwd=ROOT, check=True)

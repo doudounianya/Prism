@@ -1,0 +1,112 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <UseWPF>true</UseWPF>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <EnableDefaultItems>false</EnableDefaultItems>
+    <Configurations>Debug;Release;FlyScanDebug;FlyScanRelease</Configurations>
+    <AssemblyName>Company.$(CompanyProduct).Shell</AssemblyName>
+    <StartupObject>Company.Shell.Program</StartupObject>
+    <ProductSourceRoot>$(MSBuildProjectDirectory)/../Applications/$(CompanyProduct)/$(AssemblyName)</ProductSourceRoot>
+    <ProductBuildConfiguration>$(Configuration)</ProductBuildConfiguration>
+    <ProductBuildConfiguration Condition="'$(Configuration)' == 'FlyScanDebug'">Debug</ProductBuildConfiguration>
+    <ProductBuildConfiguration Condition="'$(Configuration)' == 'FlyScanRelease'">Release</ProductBuildConfiguration>
+    <OutputPath>$(ProductSourceRoot)/bin/$(ProductBuildConfiguration)/</OutputPath>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)' == 'FlyScanDebug'">
+    <DebugSymbols>true</DebugSymbols>
+    <Optimize>false</Optimize>
+    <DefineConstants>$(DefineConstants);DEBUG</DefineConstants>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)' == 'FlyScanRelease'">
+    <Optimize>true</Optimize>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(CompanyProduct)' == 'PlcHmi'">
+    <UseWindowsForms>true</UseWindowsForms>
+    <IsPlcHmiHost>true</IsPlcHmiHost>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(CompanyProduct)' == 'FlyScan'">
+    <DefineConstants>$(DefineConstants);FLYSCAN</DefineConstants>
+  </PropertyGroup>
+
+  <ItemGroup Condition="'$(CompanyProduct)' == 'PlcHmi' or '$(CompanyProduct)' == 'FlyScan'">
+    <Compile Include="Program.cs" />
+    <Compile Include="$(ProductSourceRoot)/**/*.cs" Exclude="$(ProductSourceRoot)/bin/**;$(ProductSourceRoot)/obj/**"
+             Link="%(RecursiveDir)%(Filename)%(Extension)" />
+    <ApplicationDefinition Include="$(ProductSourceRoot)/App.xaml" Link="App.xaml" />
+    <Page Include="$(ProductSourceRoot)/**/*.xaml" Exclude="$(ProductSourceRoot)/App.xaml;$(ProductSourceRoot)/bin/**;$(ProductSourceRoot)/obj/**"
+          Link="%(RecursiveDir)%(Filename)%(Extension)" />
+    <PackageReference Include="Prism.DryIoc" Version="9.0.537" />
+    <ProjectReference Include="../Framework/Company.Hmi.Presentation/Company.Hmi.Presentation.csproj" />
+  </ItemGroup>
+
+  <Target Name="ValidateCompanyProduct" BeforeTargets="PrepareForBuild"
+          Condition="'$(CompanyProduct)' != 'PlcHmi' and '$(CompanyProduct)' != 'FlyScan'">
+    <Error Text="CompanyProduct 须为 PlcHmi 或 FlyScan。" />
+  </Target>
+
+  <ItemGroup Condition="'$(CompanyProduct)' == 'PlcHmi'">
+    <Using Remove="System.Windows.Forms" />
+    <Using Remove="System.Drawing" />
+    <PackageReference Include="ExcelDataReader" Version="3.9.0" />
+    <PackageReference Include="MahApps.Metro" Version="2.4.11" />
+    <PackageReference Include="ReactiveUI" Version="22.3.1" />
+    <PackageReference Include="ReactiveUI.SourceGenerators" Version="2.5.1">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+    <ProjectReference Include="../Hardware/Company.Hardware.PLC.OpcUa/Company.Hardware.PLC.OpcUa.csproj" />
+    <ProjectReference Include="../Applications/PlcHmi/Company.PlcHmi.Shared/Company.PlcHmi.Shared.csproj" />
+    <ProjectReference Include="../Framework/Company.Core/Company.Core.csproj" />
+    <ProjectReference Include="../Framework/Company.Database/Company.Database.csproj" />
+    <ProjectReference Include="../Framework/Company.Logger/Company.Logger.csproj" />
+    <ProjectReference Include="../Framework/Company.UI/Company.UI.csproj" />
+    <ProjectReference Include="../Framework/Company.Platform.Shared/Company.Platform.Shared.csproj" />
+    <Using Include="Company.Platform.Shared.Login" />
+    <Using Include="Company.Platform.Shared.Model" />
+    <Using Include="Company.Platform.Shared.Events" />
+    <Using Include="Company.Platform.Shared.Config" />
+    <ProjectReference Include="../Framework/Company.Database.SqlSugar/Company.Database.SqlSugar.csproj" />
+    <ProjectReference Include="../Framework/Company.Desktop/Company.Desktop.csproj" />
+    <ProjectReference Include="../Applications/PlcHmi/Company.PlcHmi.Composition/Company.PlcHmi.Composition.csproj" OutputItemType="_PlcHmiModuleBinary" />
+    <!-- 其余 Prism 模块在运行时从 Modules 加载。把构建关系交给 MSBuild，宿主继续按目录发现。 -->
+    <ProjectReference Include="../Applications/PlcHmi/Company.PlcHmi.Configuration/Company.PlcHmi.Configuration.csproj" ReferenceOutputAssembly="false" OutputItemType="_PlcHmiModuleBinary" />
+    <ProjectReference Include="../Applications/PlcHmi/Company.PlcHmi.Login/Company.PlcHmi.Login.csproj" ReferenceOutputAssembly="false" OutputItemType="_PlcHmiModuleBinary" />
+    <ProjectReference Include="../Applications/PlcHmi/Company.PlcHmi.Main/Company.PlcHmi.Main.csproj" ReferenceOutputAssembly="false" OutputItemType="_PlcHmiModuleBinary" />
+    <ProjectReference Include="../Applications/PlcHmi/Company.PlcHmi.Menu/Company.PlcHmi.Menu.csproj" ReferenceOutputAssembly="false" OutputItemType="_PlcHmiModuleBinary" />
+    <ProjectReference Include="../Applications/PlcHmi/Company.PlcHmi.Startup/Company.PlcHmi.Startup.csproj" ReferenceOutputAssembly="false" OutputItemType="_PlcHmiModuleBinary" />
+    <Using Include="Company.PlcHmi.Shared.Login" />
+  </ItemGroup>
+
+  <Target Name="DeployPlcBindingConfig" Condition="'$(CompanyProduct)' == 'PlcHmi'" AfterTargets="Build">
+    <PropertyGroup>
+      <PlcBindingConfigTarget>$(TargetDir)Config\PLC\CRT_HMI_PLC变量绑定配置.xlsx</PlcBindingConfigTarget>
+    </PropertyGroup>
+    <MakeDir Directories="$(TargetDir)Config\PLC" />
+    <Copy SourceFiles="$(ProductSourceRoot)\Config\PLC\CRT_HMI_PLC变量绑定配置.xlsx" DestinationFiles="$(PlcBindingConfigTarget)" Condition="!Exists('$(PlcBindingConfigTarget)')" />
+  </Target>
+
+  <Target Name="PublishPlcBindingConfig" Condition="'$(CompanyProduct)' == 'PlcHmi'" AfterTargets="Publish">
+    <MakeDir Directories="$(PublishDir)Config\PLC" />
+    <Copy SourceFiles="$(ProductSourceRoot)\Config\PLC\CRT_HMI_PLC变量绑定配置.xlsx" DestinationFiles="$(PublishDir)Config\PLC\CRT_HMI_PLC变量绑定配置.xlsx" Condition="!Exists('$(PublishDir)Config\PLC\CRT_HMI_PLC变量绑定配置.xlsx')" />
+  </Target>
+
+  <Target Name="PublishPlcHmiModules" Condition="'$(CompanyProduct)' == 'PlcHmi'" AfterTargets="Publish" DependsOnTargets="ResolveProjectReferences">
+    <Error Condition="'@(_PlcHmiModuleBinary)' == ''" Text="未解析 PLC HMI 的 Prism 模块输出。" />
+    <Copy SourceFiles="@(_PlcHmiModuleBinary)" DestinationFolder="$(PublishDir)Modules" />
+  </Target>
+
+  <ItemGroup Condition="'$(CompanyProduct)' == 'FlyScan'">
+    <ProjectReference Include="../Applications/FlyScan/Company.FlyScan.Runtime/Company.FlyScan.Runtime.csproj" />
+    <None Include="../examples/Motion/FlyScan.13Axes.json" Link="Config/FlyScan.13Axes.json"
+          CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    <None Include="../examples/Motion/FlyScan.DemoRecipe.json" Link="Config/FlyScan.DemoRecipe.json"
+          CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+  </ItemGroup>
+</Project>

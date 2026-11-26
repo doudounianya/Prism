@@ -1,0 +1,9 @@
+<Project>
+  <Import Project="../Directory.Build.props" />
+
+  <PropertyGroup>
+    <CompanyProduct Condition="'$(CompanyProduct)' == '' and ('$(Configuration)' == 'FlyScanDebug' or '$(Configuration)' == 'FlyScanRelease')">FlyScan</CompanyProduct>
+    <CompanyProduct Condition="'$(CompanyProduct)' == ''">PlcHmi</CompanyProduct>
+    <BaseIntermediateOutputPath>obj/$(CompanyProduct)/</BaseIntermediateOutputPath>
+  </PropertyGroup>
+</Project>

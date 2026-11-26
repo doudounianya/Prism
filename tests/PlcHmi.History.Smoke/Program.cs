@@ -64,6 +64,9 @@ internal static partial class Program
             return File.Exists(path) ? context.LoadFromAssemblyPath(path) : null;
         };
 
+        if (loopback)
+            Check(typeof(Company.PlcHmi.Shell.App).Assembly.EntryPoint?.DeclaringType?.FullName == "Company.Shell.Program",
+                "PLC HMI executable uses the common shell entry point");
         var app = new Company.PlcHmi.Shell.App();
         app.InitializeComponent();
         app.Startup += (_, _) => app.Dispatcher.InvokeAsync(async () =>

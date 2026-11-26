@@ -18,7 +18,7 @@ from package_release_candidates import CANDIDATES, MANIFEST, ROOT, RUNTIME, chec
 from plc_history_fixture import PROBE, run_opcua, run_parameters, run_rollback
 
 
-SOURCE_DIRECTORIES = ("Applications", "Framework", "Hardware", "examples", "tests", "tools")
+SOURCE_DIRECTORIES = ("Company.Shell", "Applications", "Framework", "Hardware", "examples", "tests", "tools")
 SOURCE_FILES = ("PrismFramework.sln", "Directory.Build.props", "Directory.Build.targets", "NuGet.Config", "global.json")
 SOURCE_EXCLUSIONS = shutil.ignore_patterns(
     "bin", "obj", ".git", ".vs", "__pycache__", "ConfigurationProfiles", "Database.local.json",
@@ -141,6 +141,7 @@ def verify_source(results, output, restore_source, desktop, mysql_bin, plc_fixtu
         run("package-verifier", [sys.executable, "tests/test_verify_release_candidates.py", "-v"])
         run("build-debug", ["dotnet", "build", "PrismFramework.sln", "-c", "Debug", "-m:1", *msbuild])
         release_built = run("build-release", ["dotnet", "build", "PrismFramework.sln", "-c", "Release", "-m:1", *msbuild])
+        run("build-flyscan-debug", ["dotnet", "build", "PrismFramework.sln", "-c", "FlyScanDebug", "-m:1", *msbuild])
 
         suites = {
             "Headless.Smoke": [],
@@ -158,8 +159,9 @@ def verify_source(results, output, restore_source, desktop, mysql_bin, plc_fixtu
             elif not release_built:
                 record(results, suite, "notRun", detail="The Release build failed.")
             else:
+                product = ["-p:CompanyProduct=FlyScan"] if suite.startswith("Shared") else []
                 run(suite, ["dotnet", "run", "--project", f"tests/{suite}/{suite}.csproj", "-c", "Release",
-                            *msbuild, "--", *arguments])
+                            *msbuild, *product, "--", *arguments])
 
         if plc_fixtures:
             build_probe = ["dotnet", "build", f"tests/{PROBE}/{PROBE}.csproj", "-c", "Release", "-m:1", *msbuild]

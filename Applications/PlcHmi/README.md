@@ -1,10 +1,10 @@
 # PLC HMI
 
-打开 `PlcHmi.sln`，启动项目选择 `Company.PlcHmi.Shell`。
+打开 `PlcHmi.sln`，启动项目选择 `Company.Shell`。
 
 | 项目 | 职责 |
 | --- | --- |
-| `Company.PlcHmi.Shell` | 应用宿主、窗口、主题、托盘、关闭流程及模块目录发现 |
+| `Company.Shell` | 公共应用入口。PLC HMI 的窗口、主题、托盘、关闭流程和模块目录发现源码位于本应用的 `Company.PlcHmi.Shell` 目录 |
 | `Company.PlcHmi.Composition` | 数据库、PLC 后台、历史存储和运动驱动的 Prism 装配入口 |
 | `Company.PlcHmi.Startup` | 原初始化模块，编排启动、硬件关闭和界面准备 |
 | `Company.PlcHmi.Main` | 设备监控、模式控制、IO、参数、报警、生产数据及操作日志 |

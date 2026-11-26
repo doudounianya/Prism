@@ -39,6 +39,8 @@ internal static class Program
     private static async Task Verify(Window window, string? evidence)
     {
         T Named<T>(string name) where T : FrameworkElement => (T)window.FindName(name);
+        Check(typeof(Company.FlyScan.Shell.App).Assembly.EntryPoint?.DeclaringType?.FullName == "Company.Shell.Program",
+            "FlyScan executable uses the common shell entry point");
         var pages = Named<TabControl>("Pages");
         var parameterPages = Named<TabControl>("ParameterPages");
         var diagnostics = Named<Expander>("SimulationDiagnostics");

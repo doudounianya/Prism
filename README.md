@@ -4,14 +4,15 @@
 
 ## 入口
 
-- `PrismFramework.sln`：整个工程的入口。
-- `Applications/PlcHmi/PlcHmi.sln`：PLC HMI 的开发入口，将 `Company.PlcHmi.Shell` 设为启动项目。
-- 启动文件：`Applications/PlcHmi/Company.PlcHmi.Shell/bin/Debug/net8.0-windows/Company.PlcHmi.Shell.exe`。
+- 在 `PrismFramework.sln` 中将 `Company.Shell` 设为启动项目。选择 `Debug` 或 `Release` 启动 PLC HMI，选择 `FlyScanDebug` 或 `FlyScanRelease` 启动飞拍仿真。
+- `Applications/PlcHmi/PlcHmi.sln` 也可用于 PLC HMI 开发，启动项目同为 `Company.Shell`。
+- 两种产品仍各自生成 `Company.PlcHmi.Shell.exe` 和 `Company.FlyScan.Shell.exe`，输出在各自应用原有的 `bin/Debug` 或 `bin/Release` 目录。
 
 开发环境使用 Windows、.NET 8 Windows Desktop 和兼容的 Visual Studio/.NET SDK。
 
 ```powershell
 dotnet build .\PrismFramework.sln -c Debug -m:1
+dotnet build .\PrismFramework.sln -c FlyScanDebug -m:1
 dotnet build .\Applications\PlcHmi\PlcHmi.sln -c Release -m:1
 ```
 
@@ -27,8 +28,9 @@ dotnet build .\Applications\PlcHmi\PlcHmi.sln -c Release -m:1
 | `Framework/Company.Platform.Shared` | 账户、角色、会话、软件配置和事件的公共契约 |
 | `Framework/Company.Platform.Services` | 无界面的账户管理、共享会话、通用授权及登录偏好服务 |
 | `Hardware` | PLC 通讯、OPC UA 及运动控制卡库 |
-| `Applications/PlcHmi` | PLC HMI 宿主、启动、登录、菜单、配置、业务界面和 PLC 服务 |
-| `Applications/FlyScan` | 飞拍仿真宿主、示教配方、C# 时序和本地历史 |
+| `Company.Shell` | 公共 WPF 入口及按产品构建 |
+| `Applications/PlcHmi` | PLC HMI 装配、登录、菜单、配置、业务界面和 PLC 服务 |
+| `Applications/FlyScan` | 飞拍仿真装配、示教与工艺页面、运动与时序 |
 | `docs` | 开发计划与离线验收记录 |
 
 ## 模块与本机配置
@@ -39,7 +41,9 @@ PLC HMI 的 Debug 和 Release 现场配置各自保存在 `Applications/PlcHmi/C
 
 迁移保留原配置键、缓存键、账户角色编号、数据库结构、日志及历史数据路径、单实例互斥名。可见软件名称仍由原软件配置决定。目录及命名空间调整不更改 PLC 控制协议或业务流程。
 
-飞拍应用位于 `Applications/FlyScan`。启动 `Company.FlyScan.Shell` 后可查看共用页面，使用示教配方进行双组扫描仿真。G0 至 G4 验收见 [开发计划](docs/HmiFlyScanDevelopmentPlan.md) 和 [G4 验收记录](docs/G4Verification.md)。
+飞拍应用位于 `Applications/FlyScan`。以 `FlyScanDebug` 或 `FlyScanRelease` 构建并启动 `Company.Shell` 后可查看共用页面，使用示教配方进行双组扫描仿真。G0 至 G4 验收见 [开发计划](docs/HmiFlyScanDevelopmentPlan.md) 和 [G4 验收记录](docs/G4Verification.md)。
+
+发布脚本从 `Company.Shell/Company.Shell.csproj` 按 `CompanyProduct` 分别生成两个独立安装包。直接复跑飞拍共享界面测试时，使用 `-p:CompanyProduct=FlyScan`。
 
 数据库已按公共账户与 PLC 历史业务拆分；新增 `Applications/PlcHmi/Company.PlcHmi.Persistence` 模块，连接值保存在宿主的 `Config/Database.local.json`。
 

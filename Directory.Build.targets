@@ -5,7 +5,7 @@
     <ItemGroup>
       <_ForbiddenDesktopPackage Include="@(PackageReference)" Condition="$([System.Text.RegularExpressions.Regex]::IsMatch('%(PackageReference.Identity)', '^(Prism\.(Wpf|DryIoc)|ReactiveUI|MahApps\.)'))" />
       <_ForbiddenDesktopProject Include="@(ProjectReference)" Condition="'%(ProjectReference.Filename)' == 'Company.Desktop' Or '%(ProjectReference.Filename)' == 'Company.UI' Or '%(ProjectReference.Filename)' == 'Company.PlcHmi.Composition'" />
-      <_ForbiddenDesktopProject Include="@(ProjectReference)" Condition="'%(ProjectReference.Filename)' == 'Company.Hmi.Presentation' Or '%(ProjectReference.Filename)' == 'Company.FlyScan.Shell'" />
+      <_ForbiddenDesktopProject Include="@(ProjectReference)" Condition="'%(ProjectReference.Filename)' == 'Company.Hmi.Presentation' Or '%(ProjectReference.Filename)' == 'Company.Shell'" />
     </ItemGroup>
     <Error Condition="'@(_ForbiddenDesktopPackage)' != ''" Text="后台库 $(MSBuildProjectName) 引入了桌面包：@(_ForbiddenDesktopPackage)。" />
     <Error Condition="'@(_ForbiddenDesktopProject)' != ''" Text="后台库 $(MSBuildProjectName) 反向引用了桌面装配项目：@(_ForbiddenDesktopProject)。" />

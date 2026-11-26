@@ -1,6 +1,6 @@
 # 分层与依赖约定
 
-本工程采用同一进程内的模块化应用。WPF/Prism 负责桌面界面和装配，硬件、PLC 后台、存储实现不依赖桌面运行时。每种软件有独立宿主与应用装配项目。
+本工程采用同一进程内的模块化应用。WPF/Prism 负责桌面界面和装配，硬件、PLC 后台、存储实现不依赖桌面运行时。两种软件经由同一 WPF 项目 `Company.Shell` 构建，各自的应用装配和桌面源码留在 `Applications` 内。
 
 ## 当前项目职责
 
@@ -14,9 +14,9 @@
 | PLC 后台 | Company.PlcHmi.Plc、Company.PlcHmi.Persistence | 应用契约、基础设施、设备能力或存储适配 |
 | 应用界面 | Main、Login、Menu、Configuration、Startup | 桌面适配、应用契约、相应应用服务 |
 | 应用装配 | Company.PlcHmi.Composition | 桌面注册工具、后台实现、数据库及所需硬件驱动 |
-| 宿主 | Company.PlcHmi.Shell | 窗口及应用装配，是最终组合入口 |
+| 宿主 | Company.Shell | WPF 入口与构建时产品选择。每个产物只引用选中产品的应用项目 |
 
-依赖方向由引用决定。基础层不得引用 Hardware 或 Applications；Hardware 不得引用 Applications；共享契约不得引用应用实现；后台项目不得经直接或间接引用获得 WPF/桌面项目。
+依赖方向由引用决定。基础层不得引用 Hardware 或 Applications；Hardware 不得引用 Applications 或 Company.Shell；应用项目不得反向引用 Company.Shell；共享契约不得引用应用实现；后台项目不得经直接或间接引用获得 WPF/桌面项目。
 
 ## Company.Core 与 Company.Desktop
 
@@ -48,6 +48,7 @@ PLC 的采集、重连、权限联锁、维护锁、报警和产能处理仍位�
 python tools/verify_architecture.py
 dotnet build PrismFramework.sln -c Debug -m:1
 dotnet build PrismFramework.sln -c Release -m:1
+dotnet build PrismFramework.sln -c FlyScanDebug -m:1
 dotnet run --project tests/Headless.Smoke/Headless.Smoke.csproj
 ```
 
