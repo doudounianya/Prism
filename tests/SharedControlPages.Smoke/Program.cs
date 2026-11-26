@@ -12,12 +12,14 @@ using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Threading;
 
-internal static class Program
+internal static partial class Program
 {
     [STAThread]
     private static int Main(string[] args)
     {
         Console.OutputEncoding = System.Text.Encoding.UTF8;
+        if (args.FirstOrDefault() is "--alarm-refresh-seed" or "--alarm-refresh-benchmark")
+            return RunAlarmRefreshBenchmark(args);
         var journal = Path.Combine(Path.GetTempPath(), $"flyscan-wpf-{Guid.NewGuid():N}", "run.json");
         var app = new Company.FlyScan.Shell.App { SimulationJournalPath = journal };
         app.Startup += (_, _) => app.Dispatcher.InvokeAsync(async () =>

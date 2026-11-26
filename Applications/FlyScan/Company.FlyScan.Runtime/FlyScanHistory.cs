@@ -19,6 +19,7 @@ public sealed record ScanAlarm(string Code, string Name, string Severity, DateTi
         return end > start ? end - start : TimeSpan.Zero;
     }
 }
+public sealed record ScanLiveAlarmReport(IReadOnlyList<ScanAlarm> Alarms, bool Online);
 public sealed record ScanAlarmReport(IReadOnlyList<ScanAlarm> Alarms, IReadOnlyList<ObservationSpan> Gaps, bool Online);
 
 /// <summary>飞拍仿真自己的本地记录。工件以 G3 的工件 ID 为唯一键，首次结算与日志在同一事务提交。</summary>
@@ -28,6 +29,8 @@ public sealed class FlyScanHistory : IDisposable
         [("CARD", "运动卡告警", "故障", 1), ("ESTOP", "急停", "急停", 2)];
     private static readonly TimeSpan Heartbeat = TimeSpan.FromSeconds(1);
     private static readonly TimeSpan MaxSampleGap = TimeSpan.FromSeconds(5);
+    private const string ReadObservation = "SELECT id,stamp,observed_until,session,connected,flags FROM observations";
+    private readonly Dictionary<int, AlarmRun> _activeAlarms = [];
     private readonly TimeProvider _clock;
     private readonly string _session = Guid.NewGuid().ToString("N");
     private readonly SqliteConnection _db;
@@ -53,14 +56,32 @@ public sealed class FlyScanHistory : IDisposable
                 CREATE INDEX IF NOT EXISTS operations_stamp ON operations(stamp);
                 """);
             create.ExecuteNonQuery();
-            using var last = Command("SELECT id,stamp,observed_until,session,connected,flags FROM observations ORDER BY stamp DESC,id DESC LIMIT 1");
-            using var reader = last.ExecuteReader();
-            if (reader.Read()) _last = Sample.Read(reader);
-            reader.Close();
+            RecoverActiveAlarms();
             using var known = Command("SELECT MAX(observed_until) FROM observations WHERE connected=1");
             if (known.ExecuteScalar() is long timestamp) LastConfirmed = Date(timestamp);
         }
         catch { _db.Dispose(); throw; }
+    }
+
+    private void RecoverActiveAlarms()
+    {
+        // A connected all-clear row closes every earlier alarm. Keep it as the previous
+        // sample so the first later alarm uses the same observation boundary as a full replay.
+        using (var reset = Command(ReadObservation + " WHERE connected=1 AND flags=0 ORDER BY stamp DESC,id DESC LIMIT 1"))
+        using (var reader = reset.ExecuteReader())
+            if (reader.Read()) _last = Sample.Read(reader);
+
+        using var recent = _last is { } boundary
+            ? Command(ReadObservation + " WHERE (stamp,id) > ($stamp,$id) ORDER BY stamp,id",
+                ("$stamp", boundary.Start.UtcTicks), ("$id", boundary.Id))
+            : Command(ReadObservation + " ORDER BY stamp,id");
+        using var samples = recent.ExecuteReader();
+        while (samples.Read())
+        {
+            var next = Sample.Read(samples);
+            ApplyObservation(_last, next, _activeAlarms);
+            _last = next;
+        }
     }
 
     public DateTimeOffset Now => _clock.GetUtcNow();
@@ -83,7 +104,11 @@ public sealed class FlyScanHistory : IDisposable
                     ("$end", now.UtcTicks), ("$id", last.Id));
                 extend.ExecuteNonQuery();
                 _last = last with { End = now };
-                if (connected) LastConfirmed = now;
+                if (connected)
+                {
+                    ExtendKnownSpans(_activeAlarms, last.End, now);
+                    LastConfirmed = now;
+                }
                 return;
             }
         }
@@ -92,7 +117,9 @@ public sealed class FlyScanHistory : IDisposable
               VALUES($time,$time,$session,$online,$flags) RETURNING id
             """, ("$time", now.UtcTicks), ("$session", _session), ("$online", connected), ("$flags", flags));
         var id = (long)insert.ExecuteScalar()!;
-        _last = new Sample(id, now, now, _session, connected, flags);
+        var next = new Sample(id, now, now, _session, connected, flags);
+        ApplyObservation(_last, next, _activeAlarms);
+        _last = next;
         if (connected) LastConfirmed = now;
     }
 
@@ -150,9 +177,20 @@ public sealed class FlyScanHistory : IDisposable
         return rows;
     }
 
+    public ScanLiveAlarmReport LiveAlarms(DateTimeOffset through)
+    {
+        var online = Online;
+        var alarms = _activeAlarms.Values.Where(run => run.Start <= through)
+            .OrderByDescending(run => run.Start)
+            .ThenBy(run => run.Code, StringComparer.Ordinal)
+            .Select(run => run.ToAlarm(null, run.KnownSpans.ToArray(), forceUncertain: !online))
+            .ToArray();
+        return new ScanLiveAlarmReport(alarms, online);
+    }
+
     public ScanAlarmReport Alarms(DateTimeOffset from, DateTimeOffset to)
     {
-        using var cmd = Command("SELECT id,stamp,observed_until,session,connected,flags FROM observations ORDER BY stamp,id");
+        using var cmd = Command(ReadObservation + " ORDER BY stamp,id");
         using var reader = cmd.ExecuteReader();
         var alarms = new List<ScanAlarm>();
         var active = new Dictionary<int, AlarmRun>();
@@ -161,36 +199,7 @@ public sealed class FlyScanHistory : IDisposable
         while (reader.Read())
         {
             var next = Sample.Read(reader);
-            bool witnessed = prior is { Connected: true } known && known.Session == next.Session &&
-                next.Start - known.End <= MaxSampleGap;
-            if (prior is { } previous)
-            {
-                if (witnessed)
-                {
-                    foreach (var run in active.Values) AppendSpan(run.KnownSpans, previous.End, next.Start);
-                }
-                else
-                {
-                    AppendSpan(gaps, previous.End, next.Start);
-                    foreach (var run in active.Values) run.Uncertain = true;
-                }
-            }
-            if (next.Connected)
-            {
-                foreach (var (code, name, severity, bit) in Definitions)
-                {
-                    if ((next.Flags & bit) != 0)
-                        active.TryAdd(bit, new AlarmRun(code, name, severity, next.Start, !witnessed));
-                    else if (active.Remove(bit, out var ended) && next.Start >= from)
-                        alarms.Add(ended.ToAlarm(next.Start));
-                }
-                foreach (var run in active.Values) AppendSpan(run.KnownSpans, next.Start, next.End);
-            }
-            else
-            {
-                AppendSpan(gaps, next.Start, next.End);
-                foreach (var run in active.Values) run.Uncertain = true;
-            }
+            ApplyObservation(prior, next, active, gaps, alarms, from);
             prior = next;
         }
         if (prior is { } latest && !Online)
@@ -205,6 +214,50 @@ public sealed class FlyScanHistory : IDisposable
                 .OrderByDescending(row => row.Start).ToArray(),
             gaps.Where(gap => gap.To > from && gap.From < to).Select(gap => new ObservationSpan(
                 gap.From < from ? from : gap.From, gap.To > to ? to : gap.To)).ToArray(), Online);
+    }
+
+    private static void ApplyObservation(Sample? prior, Sample next, Dictionary<int, AlarmRun> active,
+        List<ObservationSpan>? gaps = null, List<ScanAlarm>? closed = null, DateTimeOffset from = default)
+    {
+        bool witnessed = prior is { Connected: true } known && known.Session == next.Session &&
+            next.Start - known.End <= MaxSampleGap;
+        if (prior is { } previous)
+        {
+            if (witnessed)
+                ExtendKnownSpans(active, previous.End, next.Start);
+            else
+                InterruptObservation(previous.End, next.Start);
+        }
+
+        if (!next.Connected)
+        {
+            InterruptObservation(next.Start, next.End);
+            return;
+        }
+
+        foreach (var (code, name, severity, bit) in Definitions)
+        {
+            if ((next.Flags & bit) != 0)
+            {
+                if (!active.ContainsKey(bit))
+                    active.Add(bit, new AlarmRun(code, name, severity, next.Start, !witnessed));
+            }
+            else if (active.Remove(bit, out var ended) && closed is not null && next.Start >= from)
+                closed.Add(ended.ToAlarm(next.Start));
+        }
+        ExtendKnownSpans(active, next.Start, next.End);
+
+        void InterruptObservation(DateTimeOffset start, DateTimeOffset end)
+        {
+            if (gaps is not null) AppendSpan(gaps, start, end);
+            foreach (var run in active.Values) run.Uncertain = true;
+        }
+    }
+
+    private static void ExtendKnownSpans(Dictionary<int, AlarmRun> active, DateTimeOffset from, DateTimeOffset to)
+    {
+        if (to <= from) return;
+        foreach (var run in active.Values) AppendSpan(run.KnownSpans, from, to);
     }
 
     private static void AppendSpan(List<ObservationSpan> spans, DateTimeOffset from, DateTimeOffset to)
@@ -236,6 +289,9 @@ public sealed class FlyScanHistory : IDisposable
     {
         internal List<ObservationSpan> KnownSpans { get; } = [];
         internal bool Uncertain { get; set; } = uncertain;
-        internal ScanAlarm ToAlarm(DateTimeOffset? end) => new(code, name, severity, start, end, Uncertain, KnownSpans);
+        internal DateTimeOffset Start => start;
+        internal string Code => code;
+        internal ScanAlarm ToAlarm(DateTimeOffset? end, IReadOnlyList<ObservationSpan>? spans = null, bool forceUncertain = false) =>
+            new(code, name, severity, Start, end, Uncertain || forceUncertain, spans ?? KnownSpans);
     }
 }

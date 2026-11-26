@@ -74,6 +74,7 @@ internal static class HistoryChecks
 
         VerifyWorkflowRoundTrip();
         VerifyHeartbeatRuns();
+        VerifyLiveAlarmProjection();
 
         void VerifyHeartbeatRuns()
         {
@@ -93,6 +94,66 @@ internal static class HistoryChecks
             clock.Utc = beginning.AddSeconds(20);
             check(!history.Online && history.Alarms(beginning, clock.Utc).Gaps.Count == 1,
                 "D1 stale feedback becomes an unknown interval before the next observation");
+        }
+
+        void VerifyLiveAlarmProjection()
+        {
+            foreach (bool withReset in new[] { false, true })
+            {
+                string path = Path.Combine(evidence, $"live-alarm-reset-{withReset}.sqlite");
+                clock.Utc = beginning;
+                using (var history = new FlyScanHistory(path, clock))
+                {
+                    if (withReset) history.Observe(true, false, false);
+                    history.Observe(true, true, true);
+                    VerifyLiveMatchesHistory(history, "simultaneous alarms following a same-timestamp sample");
+                    var first = history.LiveAlarms(history.Now);
+                    for (int second = 1; second <= 7; second++)
+                    {
+                        clock.Utc = beginning.AddSeconds(second);
+                        history.Observe(true, true, true);
+                        VerifyLiveMatchesHistory(history, "extended heartbeat");
+                    }
+                    check(first.Alarms.All(alarm => alarm.KnownSpans.Count == 0) &&
+                        history.LiveAlarms(history.Now).Alarms.All(alarm =>
+                            alarm.KnownDuration(beginning, history.Now) == TimeSpan.FromSeconds(7)),
+                        "Live reads preserve earlier snapshots while tracking committed heartbeat extensions");
+                    clock.Utc = beginning.AddSeconds(13);
+                    VerifyLiveMatchesHistory(history, "stale feedback");
+                    clock.Utc = beginning.AddSeconds(7);
+                    VerifyLiveMatchesHistory(history, "available feedback after a temporary stale read");
+                    clock.Utc = beginning.AddSeconds(8);
+                    history.Observe(true, true, false);
+                    VerifyLiveMatchesHistory(history, "one of two alarms clears");
+                    clock.Utc = beginning.AddSeconds(9);
+                    history.Observe(false, false, false);
+                    VerifyLiveMatchesHistory(history, "disconnection with an open alarm");
+                }
+
+                clock.Utc = beginning.AddSeconds(11);
+                using var reopened = new FlyScanHistory(path, clock);
+                VerifyLiveMatchesHistory(reopened, "reopened history with an earlier open alarm");
+                reopened.Observe(true, true, true);
+                VerifyLiveMatchesHistory(reopened, "first sample of the new session");
+                reopened.Observe(true, false, false);
+                VerifyLiveMatchesHistory(reopened, "all-clear at the same timestamp");
+            }
+        }
+
+        void VerifyLiveMatchesHistory(FlyScanHistory history, string stage)
+        {
+            var now = history.Now;
+            var full = history.Alarms(DateTimeOffset.MinValue, now.AddTicks(1));
+            var expected = full.Alarms.Where(row => row.End is null).OrderByDescending(row => row.Start)
+                .ThenBy(row => row.Code, StringComparer.Ordinal).ToArray();
+            var live = history.LiveAlarms(now);
+            check(live.Online == full.Online && live.Alarms.Count == expected.Length &&
+                live.Alarms.Zip(expected).All(pair =>
+                    (pair.First with { KnownSpans = pair.Second.KnownSpans }) == pair.Second &&
+                    pair.First.KnownSpans.SequenceEqual(pair.Second.KnownSpans) &&
+                    pair.First.KnownDuration(beginning.AddSeconds(2), now) ==
+                        pair.Second.KnownDuration(beginning.AddSeconds(2), now)),
+                $"Live alarm fields and clipped observation intervals match history after {stage}");
         }
 
         void VerifyWorkflowRoundTrip()

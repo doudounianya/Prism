@@ -160,24 +160,24 @@ internal sealed class FlyAlarmPage : HistoryPage
 
     protected override void Refresh()
     {
-        var now = History.Now;
-        var range = _live ? (DateTimeOffset.MinValue, now.AddTicks(1)) :
-            ParseRange(Filter.FromDate, Filter.FromTime, Filter.ToDate, Filter.ToTime);
-        var report = History.Alarms(range.Item1, range.Item2);
         if (_live)
         {
-            var active = report.Alarms.Where(item => item.End is null).ToDictionary(item => item.Code);
-            _rows = report.Online
-                ? active.Values.Select(item => AlarmRow.From(item, range.Item1, now, false)).ToArray()
+            var now = History.Now;
+            var live = History.LiveAlarms(now);
+            var active = live.Alarms.ToDictionary(item => item.Code);
+            _rows = live.Online
+                ? active.Values.Select(item => AlarmRow.From(item, DateTimeOffset.MinValue, now, false)).ToArray()
                 : new[] { ("CARD", "运动卡告警", "故障"), ("ESTOP", "急停", "急停") }
                     .Select(item => active.TryGetValue(item.Item1, out var existing)
-                        ? AlarmRow.From(existing, range.Item1, now, true)
+                        ? AlarmRow.From(existing, DateTimeOffset.MinValue, now, true)
                         : AlarmRow.Unknown(item.Item1, item.Item2, item.Item3)).ToArray();
             if (_selected is AlarmRow previous)
                 _selected = _rows.FirstOrDefault(item => item.Alarm == previous.Alarm);
-            Summary = report.Online ? "运动卡仿真 · 在线" : "运动卡仿真 · 等待可确认反馈";
+            Summary = live.Online ? "运动卡仿真 · 在线" : "运动卡仿真 · 等待可确认反馈";
             return;
         }
+        var range = ParseRange(Filter.FromDate, Filter.FromTime, Filter.ToDate, Filter.ToTime);
+        var report = History.Alarms(range.Item1, range.Item2);
         var keyword = Filter.Keyword.Trim();
         var severity = Filter.Severity.Trim();
         _pageSize = Math.Clamp(Filter.PageSize, 1, 100);
