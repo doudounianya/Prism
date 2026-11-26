@@ -9,42 +9,41 @@
              prism:ViewModelLocator.AutoWireViewModel="True"
              mc:Ignorable="d" >
     <UserControl.Resources>
-        <Style x:Key="NavigationItem" TargetType="Button">
-            <Setter Property="Width" Value="108"/>
-            <Setter Property="FontSize" Value="18"/>
-            <Setter Property="FontWeight" Value="SemiBold"/>
-            <Setter Property="Foreground" Value="#214368"/>
-            <Setter Property="Background" Value="Transparent"/>
-            <Setter Property="Padding" Value="14,12"/>
-            <Setter Property="BorderThickness" Value="0"/>
-            <Setter Property="HorizontalContentAlignment" Value="Center"/>
-            <Setter Property="Template">
-                <Setter.Value>
-                    <ControlTemplate TargetType="Button">
-                        <Grid>
-                            <Border x:Name="Frame" Background="{TemplateBinding Background}" Padding="{TemplateBinding Padding}">
-                                <ContentPresenter Content="{TemplateBinding Content}" RecognizesAccessKey="True" HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}" VerticalAlignment="Center"/>
-                            </Border>
-                            <Border x:Name="ActiveLine" Height="4" Background="#186AE8" VerticalAlignment="Bottom" Visibility="Collapsed"/>
-                        </Grid>
-                        <ControlTemplate.Triggers>
-                            <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="Frame" Property="Background" Value="#EDF5FF"/><Setter Property="Foreground" Value="#1264D9"/></Trigger>
-                            <Trigger Property="Tag" Value="Active"><Setter TargetName="Frame" Property="Background" Value="#EDF5FF"/><Setter TargetName="ActiveLine" Property="Visibility" Value="Visible"/><Setter Property="Foreground" Value="#1264D9"/></Trigger>
-                            <Trigger Property="IsEnabled" Value="False"><Setter Property="Foreground" Value="#71859D"/></Trigger>
-                        </ControlTemplate.Triggers>
-                    </ControlTemplate>
-                </Setter.Value>
-            </Setter>
-        </Style>
-        <Style x:Key="AlarmNavigation" TargetType="Button" BasedOn="{StaticResource NavigationItem}"><Style.Triggers><DataTrigger Binding="{Binding ActiveSection}" Value="报警监控"><Setter Property="Tag" Value="Active"/></DataTrigger></Style.Triggers></Style>
-        <Style x:Key="ProductionNavigation" TargetType="Button" BasedOn="{StaticResource NavigationItem}"><Style.Triggers><DataTrigger Binding="{Binding ActiveSection}" Value="生产数据"><Setter Property="Tag" Value="Active"/></DataTrigger></Style.Triggers></Style>
-        <Style x:Key="IoNavigation" TargetType="Button" BasedOn="{StaticResource NavigationItem}"><Style.Triggers><DataTrigger Binding="{Binding ActiveSection}" Value="IO监控"><Setter Property="Tag" Value="Active"/></DataTrigger></Style.Triggers></Style>
-        <Style x:Key="ParameterNavigation" TargetType="Button" BasedOn="{StaticResource NavigationItem}"><Style.Triggers><DataTrigger Binding="{Binding ActiveSection}" Value="参数设置"><Setter Property="Tag" Value="Active"/></DataTrigger></Style.Triggers></Style>
-        <Style x:Key="ProcessNavigation" TargetType="Button" BasedOn="{StaticResource NavigationItem}"><Style.Triggers><DataTrigger Binding="{Binding ActiveSection}" Value="工艺参数"><Setter Property="Tag" Value="Active"/></DataTrigger></Style.Triggers></Style>
-        <Style x:Key="OperationLogNavigation" TargetType="Button" BasedOn="{StaticResource NavigationItem}"><Style.Triggers><DataTrigger Binding="{Binding ActiveSection}" Value="操作日志"><Setter Property="Tag" Value="Active"/></DataTrigger></Style.Triggers></Style>
-        <Style TargetType="Button" BasedOn="{StaticResource NavigationItem}"/>
-        <Style x:Key="DeviceNavigation" TargetType="Button" BasedOn="{StaticResource NavigationItem}"><Style.Triggers><DataTrigger Binding="{Binding ActiveSection}" Value="设备监控"><Setter Property="Tag" Value="Active"/></DataTrigger></Style.Triggers></Style>
-        <Style x:Key="ModeNavigation" TargetType="Button" BasedOn="{StaticResource NavigationItem}"><Style.Triggers><DataTrigger Binding="{Binding ActiveSection}" Value="模式控制"><Setter Property="Tag" Value="Active"/></DataTrigger></Style.Triggers></Style>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="/Company.Hmi.Presentation;component/WorkspaceChrome.xaml"/>
+            </ResourceDictionary.MergedDictionaries>
+            <Style x:Key="NavigationItem" TargetType="Button" BasedOn="{StaticResource WorkspaceNavigationItem}">
+                <Setter Property="HorizontalContentAlignment" Value="Center"/>
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="Button">
+                            <Grid>
+                                <Border x:Name="Frame" Background="{TemplateBinding Background}" Padding="{TemplateBinding Padding}">
+                                    <TextBlock x:Name="Label" Text="{TemplateBinding Content}" Style="{StaticResource WorkspaceNavigationLabel}"
+                                               HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}" VerticalAlignment="Center"/>
+                                </Border>
+                                <Border x:Name="ActiveLine" Height="4" Background="{StaticResource WorkspaceNavigationUnderline}" VerticalAlignment="Bottom" Visibility="Collapsed"/>
+                            </Grid>
+                            <ControlTemplate.Triggers>
+                                <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="Frame" Property="Background" Value="{StaticResource WorkspaceNavigationActiveBackground}"/><Setter TargetName="Label" Property="Foreground" Value="{StaticResource WorkspaceNavigationActiveForeground}"/></Trigger>
+                                <Trigger Property="Tag" Value="Active"><Setter TargetName="Frame" Property="Background" Value="{StaticResource WorkspaceNavigationActiveBackground}"/><Setter TargetName="ActiveLine" Property="Visibility" Value="Visible"/><Setter TargetName="Label" Property="Foreground" Value="{StaticResource WorkspaceNavigationActiveForeground}"/></Trigger>
+                                <Trigger Property="IsEnabled" Value="False"><Setter TargetName="Label" Property="Foreground" Value="{StaticResource WorkspaceNavigationDisabledForeground}"/></Trigger>
+                            </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Style>
+            <Style x:Key="AlarmNavigation" TargetType="Button" BasedOn="{StaticResource NavigationItem}"><Style.Triggers><DataTrigger Binding="{Binding ActiveSection}" Value="报警监控"><Setter Property="Tag" Value="Active"/></DataTrigger></Style.Triggers></Style>
+            <Style x:Key="ProductionNavigation" TargetType="Button" BasedOn="{StaticResource NavigationItem}"><Style.Triggers><DataTrigger Binding="{Binding ActiveSection}" Value="生产数据"><Setter Property="Tag" Value="Active"/></DataTrigger></Style.Triggers></Style>
+            <Style x:Key="IoNavigation" TargetType="Button" BasedOn="{StaticResource NavigationItem}"><Style.Triggers><DataTrigger Binding="{Binding ActiveSection}" Value="IO监控"><Setter Property="Tag" Value="Active"/></DataTrigger></Style.Triggers></Style>
+            <Style x:Key="ParameterNavigation" TargetType="Button" BasedOn="{StaticResource NavigationItem}"><Style.Triggers><DataTrigger Binding="{Binding ActiveSection}" Value="参数设置"><Setter Property="Tag" Value="Active"/></DataTrigger></Style.Triggers></Style>
+            <Style x:Key="ProcessNavigation" TargetType="Button" BasedOn="{StaticResource NavigationItem}"><Style.Triggers><DataTrigger Binding="{Binding ActiveSection}" Value="工艺参数"><Setter Property="Tag" Value="Active"/></DataTrigger></Style.Triggers></Style>
+            <Style x:Key="OperationLogNavigation" TargetType="Button" BasedOn="{StaticResource NavigationItem}"><Style.Triggers><DataTrigger Binding="{Binding ActiveSection}" Value="操作日志"><Setter Property="Tag" Value="Active"/></DataTrigger></Style.Triggers></Style>
+            <Style TargetType="Button" BasedOn="{StaticResource NavigationItem}"/>
+            <Style x:Key="DeviceNavigation" TargetType="Button" BasedOn="{StaticResource NavigationItem}"><Style.Triggers><DataTrigger Binding="{Binding ActiveSection}" Value="设备监控"><Setter Property="Tag" Value="Active"/></DataTrigger></Style.Triggers></Style>
+            <Style x:Key="ModeNavigation" TargetType="Button" BasedOn="{StaticResource NavigationItem}"><Style.Triggers><DataTrigger Binding="{Binding ActiveSection}" Value="模式控制"><Setter Property="Tag" Value="Active"/></DataTrigger></Style.Triggers></Style>
+        </ResourceDictionary>
     </UserControl.Resources>
     <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled" VerticalAlignment="Center">
     <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">

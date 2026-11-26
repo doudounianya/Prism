@@ -3,36 +3,138 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:hmi="clr-namespace:Company.Hmi.Presentation;assembly=Company.Hmi.Presentation"
         xmlns:local="clr-namespace:Company.FlyScan.Shell"
-        Title="飞拍 · 仿真" Width="1500" Height="980" MinWidth="820" MinHeight="560"
-        Background="#F0F5FB" FontFamily="Segoe UI, Microsoft YaHei">
+        Title="飞拍 · 仿真" Width="1500" Height="980" MinWidth="820" MinHeight="560" WindowState="Maximized"
+        Background="#F0F5FB" FontFamily="Segoe UI, Microsoft YaHei" FontSize="15" UseLayoutRounding="True">
     <Window.Resources>
         <ResourceDictionary>
             <ResourceDictionary.MergedDictionaries>
-                <ResourceDictionary Source="/Company.Hmi.Presentation;component/SettingsPageStyles.xaml"/>
+                <ResourceDictionary Source="/Company.Hmi.Presentation;component/WorkspaceChrome.xaml"/>
             </ResourceDictionary.MergedDictionaries>
             <ControlTemplate x:Key="PageContent" TargetType="TabControl">
                 <ContentPresenter x:Name="PART_SelectedContentHost" ContentSource="SelectedContent"/>
             </ControlTemplate>
+            <Style x:Key="WorkspaceTab" TargetType="TabItem" BasedOn="{StaticResource WorkspaceNavigationItem}">
+                <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+                <Setter Property="VerticalContentAlignment" Value="Stretch"/>
+                <Setter Property="Cursor" Value="Hand"/>
+                <Setter Property="ToolTipService.ShowOnDisabled" Value="True"/>
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="TabItem">
+                            <Grid>
+                                <Border x:Name="Frame" Background="{TemplateBinding Background}"
+                                        Padding="{TemplateBinding Padding}">
+                                    <TextBlock x:Name="Label" Text="{TemplateBinding Header}" Style="{StaticResource WorkspaceNavigationLabel}"
+                                               HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                </Border>
+                                <Border x:Name="ActiveLine" Height="4" VerticalAlignment="Bottom" Visibility="Collapsed"
+                                        Background="{StaticResource WorkspaceNavigationUnderline}"/>
+                            </Grid>
+                            <ControlTemplate.Triggers>
+                                <Trigger Property="IsMouseOver" Value="True">
+                                    <Setter TargetName="Frame" Property="Background" Value="{StaticResource WorkspaceNavigationActiveBackground}"/>
+                                    <Setter TargetName="Label" Property="Foreground" Value="{StaticResource WorkspaceNavigationActiveForeground}"/>
+                                </Trigger>
+                                <Trigger Property="IsSelected" Value="True">
+                                    <Setter TargetName="Frame" Property="Background" Value="{StaticResource WorkspaceNavigationActiveBackground}"/>
+                                    <Setter TargetName="ActiveLine" Property="Visibility" Value="Visible"/>
+                                    <Setter TargetName="Label" Property="Foreground" Value="{StaticResource WorkspaceNavigationActiveForeground}"/>
+                                </Trigger>
+                                <Trigger Property="IsEnabled" Value="False">
+                                    <Setter TargetName="Label" Property="Foreground" Value="{StaticResource WorkspaceNavigationDisabledForeground}"/>
+                                    <Setter Property="Cursor" Value="Arrow"/>
+                                </Trigger>
+                            </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Style>
         </ResourceDictionary>
     </Window.Resources>
     <DockPanel>
-        <Border DockPanel.Dock="Top" Padding="20,12" Background="White" BorderBrush="#DAE5F1" BorderThickness="0,0,0,1">
-            <WrapPanel VerticalAlignment="Center">
-                <TextBlock Margin="0,0,18,0" VerticalAlignment="Center" Foreground="#173D6B" FontSize="19"
-                           FontWeight="SemiBold" Text="飞拍 · 仿真" />
-                <TextBlock Margin="0,0,6,0" VerticalAlignment="Center" Text="仿真身份" />
-                <ComboBox x:Name="SimulationRole" Width="112" Margin="0,0,14,0" DisplayMemberPath="Name" SelectionChanged="RoleChanged" />
-                <TextBlock Margin="0,0,6,0" VerticalAlignment="Center" Text="模拟反馈" />
-                <ComboBox x:Name="SimulationMode" Width="104" Margin="0,0,6,0" DisplayMemberPath="Name" />
-                <ComboBox x:Name="SimulationStatus" Width="92" Margin="0,0,8,0" DisplayMemberPath="Name" />
-                <Button Margin="0,0,6,0" Padding="9,4" Content="应用反馈" Click="ApplyFeedbackClicked" />
-                <Button Margin="0,0,6,0" Padding="9,4" Content="反馈未知" Click="LoseFeedbackClicked" />
-                <Button Margin="0,0,14,0" Padding="9,4" Content="初始化完成" Click="CompleteInitializationClicked" />
-                <Button Margin="0,0,6,0" Padding="9,4" Content="模拟断开" Click="DisconnectClicked" />
-                <Button Padding="9,4" Content="模拟重连" Click="ReconnectClicked" />
-            </WrapPanel>
+        <Border DockPanel.Dock="Bottom" Style="{StaticResource WorkspaceDiagnosticsFrame}">
+            <Border.Resources>
+                <ResourceDictionary Source="/Company.Hmi.Presentation;component/ComponentPageStyles.xaml"/>
+            </Border.Resources>
+            <Expander x:Name="SimulationDiagnostics" Header="运行诊断 · 仿真">
+                <WrapPanel Margin="0,8,0,0">
+                    <TextBlock Margin="0,0,6,6" VerticalAlignment="Center" Text="仿真身份" />
+                    <ComboBox x:Name="SimulationRole" Width="112" Margin="0,0,14,6" DisplayMemberPath="Name" SelectionChanged="RoleChanged" />
+                    <TextBlock Margin="0,0,6,6" VerticalAlignment="Center" Text="模拟反馈" />
+                    <ComboBox x:Name="SimulationMode" Width="104" Margin="0,0,6,6" DisplayMemberPath="Name" />
+                    <ComboBox x:Name="SimulationStatus" Width="92" Margin="0,0,8,6" DisplayMemberPath="Name" />
+                    <Button Margin="0,0,6,6" Padding="9,4" Content="应用反馈" Click="ApplyFeedbackClicked" />
+                    <Button Margin="0,0,6,6" Padding="9,4" Content="反馈未知" Click="LoseFeedbackClicked" />
+                    <Button Margin="0,0,14,6" Padding="9,4" Content="初始化完成" Click="CompleteInitializationClicked" />
+                    <Button Margin="0,0,6,6" Padding="9,4" Content="模拟断开" Click="DisconnectClicked" />
+                    <Button Margin="0,0,0,6" Padding="9,4" Content="模拟重连" Click="ReconnectClicked" />
+                </WrapPanel>
+            </Expander>
         </Border>
-        <TabControl x:Name="Pages">
+        <TabControl x:Name="Pages" ItemContainerStyle="{StaticResource WorkspaceTab}">
+            <TabControl.Template>
+                <ControlTemplate TargetType="TabControl">
+                    <DockPanel KeyboardNavigation.TabNavigation="Local">
+                        <Border DockPanel.Dock="Top" Style="{StaticResource WorkspaceHeaderFrame}">
+                            <StackPanel>
+                                <Grid MinHeight="76">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto"/>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="6,0,22,0">
+                                        <TextBlock Text="飞拍" Style="{StaticResource WorkspaceProductTitle}"/>
+                                        <TextBlock Text="仿真" Style="{StaticResource WorkspaceProductDetail}"/>
+                                    </StackPanel>
+                                    <WrapPanel Grid.Column="1" IsItemsHost="True" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                    <TextBlock Grid.Column="2" Text="{Binding Machine.Actor, RelativeSource={RelativeSource AncestorType=local:MainWindow}}"
+                                               Foreground="#526985" FontSize="14" VerticalAlignment="Center" Margin="18,0,6,0"/>
+                                </Grid>
+                                <Border Style="{StaticResource WorkspaceStatusBar}">
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                        </Grid.ColumnDefinitions>
+                                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                            <TextBlock x:Name="EquipmentMode" Style="{StaticResource WorkspaceStatusText}" Margin="0,0,24,0"
+                                                       Text="{Binding ModeDisplay.ModeText, RelativeSource={RelativeSource AncestorType=local:MainWindow}, StringFormat=本机模式　{0}}"/>
+                                            <TextBlock x:Name="EquipmentState" Style="{StaticResource WorkspaceStatusText}" Margin="0,0,24,0"
+                                                       Text="{Binding ModeDisplay.StatusText, RelativeSource={RelativeSource AncestorType=local:MainWindow}, StringFormat=本机状态　{0}}"/>
+                                            <TextBlock x:Name="CardConnection">
+                                                <TextBlock.Style>
+                                                    <Style TargetType="TextBlock" BasedOn="{StaticResource WorkspaceStatusText}">
+                                                        <Setter Property="Text" Value="运动卡通讯　断开"/>
+                                                        <Style.Triggers>
+                                                            <DataTrigger Binding="{Binding ScanConnectionInput.IsChecked, RelativeSource={RelativeSource AncestorType=local:MainWindow}}" Value="True">
+                                                                <Setter Property="Text" Value="运动卡通讯　正常"/>
+                                                            </DataTrigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </TextBlock.Style>
+                                            </TextBlock>
+                                        </StackPanel>
+                                        <TextBlock x:Name="ParameterAccess" Grid.Column="1" FontSize="13" Margin="16,0,0,0">
+                                            <TextBlock.Style>
+                                                <Style TargetType="TextBlock" BasedOn="{StaticResource WorkspaceStatusText}">
+                                                    <Setter Property="Text" Value="参数只读"/>
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding Machine.CanAdjust, RelativeSource={RelativeSource AncestorType=local:MainWindow}}" Value="True">
+                                                            <Setter Property="Text" Value="手动调试 · 参数可操作"/>
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </TextBlock.Style>
+                                        </TextBlock>
+                                    </Grid>
+                                </Border>
+                            </StackPanel>
+                        </Border>
+                        <ContentPresenter x:Name="PART_SelectedContentHost" ContentSource="SelectedContent" ClipToBounds="True"/>
+                    </DockPanel>
+                </ControlTemplate>
+            </TabControl.Template>
             <TabItem x:Name="DeviceTab" Header="设备监控"><hmi:DeviceMonitorView x:Name="DevicePage"/></TabItem>
             <TabItem x:Name="ModeTab" Header="模式控制"><hmi:ModeControlView x:Name="ModePage" /></TabItem>
             <TabItem x:Name="IoTab" Header="IO监控"><hmi:IoMonitorView x:Name="IoPage" /></TabItem>
@@ -63,6 +165,9 @@
             <TabItem x:Name="MesTab" Header="MES接口" IsEnabled="False" ToolTip="当前机型未配置 MES 接口"/>
             <TabItem x:Name="SettingsTab" Header="系统设置">
                 <hmi:SettingsPage x:Name="FlySettings" MaxWidth="900" HorizontalAlignment="Left">
+                    <hmi:SettingsPage.Resources>
+                        <ResourceDictionary Source="/Company.Hmi.Presentation;component/SettingsPageStyles.xaml"/>
+                    </hmi:SettingsPage.Resources>
                     <hmi:SettingsPage.SoftwareContent>
                         <Border Style="{StaticResource SettingsCard}">
                             <StackPanel>

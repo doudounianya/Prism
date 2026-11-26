@@ -41,6 +41,29 @@ internal static class Program
         T Named<T>(string name) where T : FrameworkElement => (T)window.FindName(name);
         var pages = Named<TabControl>("Pages");
         var parameterPages = Named<TabControl>("ParameterPages");
+        var diagnostics = Named<Expander>("SimulationDiagnostics");
+        TextBlock StatusText(string name) => (TextBlock)pages.Template.FindName(name, pages);
+        Check(!diagnostics.IsExpanded && pages.Items.Count == 10 && !Named<TabItem>("MesTab").IsEnabled,
+            "HMI navigation and collapsed simulation diagnostics are available at startup");
+        Check(StatusText("CardConnection").Text == "运动卡通讯　正常", "status bar shows the initial scan connection");
+        var width = window.Width;
+        var windowState = window.WindowState;
+        window.WindowState = WindowState.Normal;
+        window.Width = window.MinWidth;
+        await Idle();
+        var lastTab = Named<TabItem>("SettingsTab");
+        var tabBounds = lastTab.TransformToAncestor(window).TransformBounds(new Rect(lastTab.RenderSize));
+        Check(lastTab.IsVisible && tabBounds.Right <= window.ActualWidth,
+            "all navigation items fit at minimum window width");
+        window.Width = width;
+        window.WindowState = windowState;
+        var modeTab = Named<TabItem>("ModeTab");
+        var modePeer = new TabItemAutomationPeer(modeTab, new TabControlAutomationPeer(pages));
+        ((ISelectionItemProvider)modePeer.GetPattern(PatternInterface.SelectionItem)!).Select();
+        await Idle();
+        Check(ReferenceEquals(pages.SelectedItem, modeTab) &&
+            ((Border)modeTab.Template.FindName("ActiveLine", modeTab)).IsVisible,
+            "selecting a navigation tab shows its page and the HMI active underline");
         async Task Open(string tab)
         {
             if (tab is "AxisTab" or "CylinderTab")
@@ -86,8 +109,12 @@ internal static class Program
             "stable confirmed feedback preserves manual browse selection");
         await Feedback(0, 30);
         Check(Diagram("Manual").IsChecked == true, "same-mode state change follows actual diagram");
+        Check(StatusText("EquipmentMode").Text == "本机模式　手动模式" &&
+            StatusText("EquipmentState").Text == "本机状态　调试" &&
+            StatusText("ParameterAccess").Text == "参数只读", "status bar shows confirmed state and visitor access");
         Click(window, "反馈未知");
         await Idle();
+        Check(StatusText("EquipmentState").Text == "本机状态　未知", "status bar drops stale feedback");
         Check(modeModel.ConfirmedState is null && Diagram("Manual").IsChecked == true, "unknown feedback does not navigate");
         await Role(UserRole.EquipmentEngineer);
         await Feedback(0, 0);
@@ -98,6 +125,12 @@ internal static class Program
         Click(window, "初始化完成");
         await Idle();
         Check(modeModel.Display.Status == 0 && modeModel.Display.Signal(0) == true, "completion uses explicit simulated feedback");
+        await Feedback(0, 30);
+        Check(StatusText("ParameterAccess").Text == "手动调试 · 参数可操作", "status bar reflects authorized debugging");
+        await Feedback(0, 0);
+        Check(StatusText("ParameterAccess").Text == "参数只读", "status bar returns to read-only after debugging");
+        diagnostics.IsExpanded = false;
+        await Idle();
         Capture(window,evidence,"fly-mode");
 
         await Open("AxisTab");
@@ -250,10 +283,12 @@ internal static class Program
         Signal("ConnectedSignal", false);
         await Wait(() => Table(realtime).Items.Cast<object>().Count(row => Field(row, "StateText") == "未知") == 2,
             "G4 shared real-time alarm distinguishes both unknown signals after disconnect");
+        Check(StatusText("CardConnection").Text == "运动卡通讯　断开", "status bar shows the scan disconnect");
         Signal("AlarmSignal", false);
         Signal("ConnectedSignal", true);
         Click(realtime, "历史报警");
         await Idle();
+        Check(StatusText("CardConnection").Text == "运动卡通讯　正常", "status bar shows the scan reconnect");
         var alarmHistory = Named<AlarmHistoryView>("AlarmHistoryPage");
         Check(alarmHistory.IsVisible && Table(alarmHistory).Items.Cast<object>().Any(row =>
             Field(row, "ObservedDuration")?.Contains("缺口未知", StringComparison.Ordinal) == true),
@@ -317,6 +352,11 @@ internal static class Program
 
     private static void Click(DependencyObject view, string caption)
     {
+        if (view is Window window && window.FindName("SimulationDiagnostics") is Expander { IsExpanded: false } diagnostics)
+        {
+            diagnostics.IsExpanded = true;
+            window.UpdateLayout();
+        }
         var button = Walk<Button>(view).Single(b => b.IsVisible && Equals(b.Content, caption));
         var peer = new ButtonAutomationPeer(button);
         ((IInvokeProvider)peer.GetPattern(PatternInterface.Invoke)!).Invoke();
@@ -333,8 +373,14 @@ internal static class Program
     {
         if (path is null) return;
         Directory.CreateDirectory(path);
-        var bitmap = new RenderTargetBitmap((int)window.ActualWidth, (int)window.ActualHeight, 96, 96, PixelFormats.Pbgra32);
-        bitmap.Render(window);
+        if (window.FindName("SimulationDiagnostics") is Expander diagnostics)
+        {
+            diagnostics.IsExpanded = false;
+            window.UpdateLayout();
+        }
+        var content = (FrameworkElement)window.Content;
+        var bitmap = new RenderTargetBitmap((int)content.ActualWidth, (int)content.ActualHeight, 96, 96, PixelFormats.Pbgra32);
+        bitmap.Render(content);
         var png = new PngBitmapEncoder();
         png.Frames.Add(BitmapFrame.Create(bitmap));
         using var file = File.Create(Path.Combine(path, name + ".png"));

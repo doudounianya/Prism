@@ -88,7 +88,10 @@ internal static class Program
 
     private static void Invoke(Window root, string name)
     {
-        var button = Find<Button>(root).Single(b => Equals(b.Content, name));
+        var diagnostics = (Expander)root.FindName("SimulationDiagnostics");
+        diagnostics.IsExpanded = true;
+        root.UpdateLayout();
+        var button = Find<Button>(diagnostics).Single(b => b.IsVisible && Equals(b.Content, name));
         var peer = new ButtonAutomationPeer(button);
         ((IInvokeProvider)peer.GetPattern(PatternInterface.Invoke)!).Invoke();
     }
@@ -103,8 +106,11 @@ internal static class Program
     private static void Save(Window window, string directory, string name)
     {
         Directory.CreateDirectory(directory);
-        var bitmap = new RenderTargetBitmap((int)window.ActualWidth, (int)window.ActualHeight, 96, 96, PixelFormats.Pbgra32);
-        bitmap.Render(window);
+        ((Expander)window.FindName("SimulationDiagnostics")).IsExpanded = false;
+        window.UpdateLayout();
+        var content = (FrameworkElement)window.Content;
+        var bitmap = new RenderTargetBitmap((int)content.ActualWidth, (int)content.ActualHeight, 96, 96, PixelFormats.Pbgra32);
+        bitmap.Render(content);
         var encoder = new PngBitmapEncoder();
         encoder.Frames.Add(BitmapFrame.Create(bitmap));
         using var output = File.Create(Path.Combine(directory, name + ".png"));

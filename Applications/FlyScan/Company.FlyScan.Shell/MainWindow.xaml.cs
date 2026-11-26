@@ -2,6 +2,7 @@ using Company.FlyScan.Runtime;
 using System.IO;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Controls.Primitives;
 using System.Windows.Threading;
 
 namespace Company.FlyScan.Shell;
@@ -19,6 +20,7 @@ public partial class MainWindow : Window
     {
         _monitor = monitor;
         _machine = machine;
+        ModeDisplay = mode;
         _historyLocation = Path.GetDirectoryName(storage.JournalPath);
         InitializeComponent();
         ParameterPages.SelectedIndex = AlarmPages.SelectedIndex = ProductionPages.SelectedIndex = 0;
@@ -41,6 +43,10 @@ public partial class MainWindow : Window
         _axisRefresh.Start();
         Closed += (_, _) => { _axisRefresh.Stop(); _summaryRefresh.Stop(); ScanPage.Dispose(); machine.Dispose(); monitor.Dispose(); };
     }
+
+    public SimulatedMachine Machine => _machine;
+    public SimulatedModePage ModeDisplay { get; }
+    public ToggleButton ScanConnectionInput => ScanPage.ConnectedSignal;
 
     private void NavigateParameters(string target)
     {

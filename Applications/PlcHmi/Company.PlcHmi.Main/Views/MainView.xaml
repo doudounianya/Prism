@@ -9,21 +9,21 @@
              prism:ViewModelLocator.AutoWireViewModel="True"
              mc:Ignorable="d" Background="#F0F5FB" FontFamily="Segoe UI, Microsoft YaHei" FontSize="15"
              d:DesignHeight="720" d:DesignWidth="1280">
-    <UserControl.Resources><ResourceDictionary><ResourceDictionary.MergedDictionaries><ResourceDictionary Source="/Company.PlcHmi.Main;component/Presentation/PreviewPageStyles.xaml"/></ResourceDictionary.MergedDictionaries></ResourceDictionary></UserControl.Resources>
+    <UserControl.Resources><ResourceDictionary><ResourceDictionary.MergedDictionaries><ResourceDictionary Source="/Company.PlcHmi.Main;component/Presentation/PreviewPageStyles.xaml"/><ResourceDictionary Source="/Company.Hmi.Presentation;component/WorkspaceChrome.xaml"/></ResourceDictionary.MergedDictionaries></ResourceDictionary></UserControl.Resources>
     <Grid>
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
             <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
-        <Border Background="#FAFCFF" BorderBrush="#DAE5F1" BorderThickness="0,0,0,1" Padding="14,0,14,12">
+        <Border Style="{StaticResource WorkspaceHeaderFrame}">
             <Grid>
                 <Grid.RowDefinitions><RowDefinition Height="76"/><RowDefinition Height="38"/></Grid.RowDefinitions>
                 <Grid>
                     <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
                     <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="6,0,22,0">
-                        <TextBlock Text="ENOVIX 单平台焊接" FontSize="22" FontWeight="Bold" Foreground="#10365D"/>
-                        <TextBlock Text="POC 1/4 · 单平台" FontSize="15" Foreground="#71859D" Margin="16,0,0,0"/>
+                        <TextBlock Text="ENOVIX 单平台焊接" Style="{StaticResource WorkspaceProductTitle}"/>
+                        <TextBlock Text="POC 1/4 · 单平台" Style="{StaticResource WorkspaceProductDetail}"/>
                     </StackPanel>
                     <ContentControl Grid.Column="1" VerticalAlignment="Center" prism:RegionManager.RegionName="{x:Static share:RegionNames.MenuRegion}"/>
                     <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
@@ -34,15 +34,15 @@
                         </Button>
                     </StackPanel>
                 </Grid>
-                <Border Grid.Row="1" Background="#1565DF" CornerRadius="6" Padding="14,0">
+                <Border Grid.Row="1" Style="{StaticResource WorkspaceStatusBar}">
                     <Grid>
                         <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
                         <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                            <TextBlock Text="{Binding EquipmentModeText,StringFormat=本机模式　{0}}" Foreground="White" FontSize="14" Margin="0,0,24,0" ToolTip="{Binding ModeReadoutHint}"/>
-                            <TextBlock Text="{Binding EquipmentStateText,StringFormat=本机状态　{0}}" Foreground="White" FontSize="14" Margin="0,0,24,0" ToolTip="{Binding ModeReadoutHint}"/>
-                            <TextBlock Text="{Binding PlcFeedbackText}" ToolTip="{Binding StatusText}" Foreground="White" FontSize="14"/>
+                            <TextBlock Text="{Binding EquipmentModeText,StringFormat=本机模式　{0}}" Style="{StaticResource WorkspaceStatusText}" Margin="0,0,24,0" ToolTip="{Binding ModeReadoutHint}"/>
+                            <TextBlock Text="{Binding EquipmentStateText,StringFormat=本机状态　{0}}" Style="{StaticResource WorkspaceStatusText}" Margin="0,0,24,0" ToolTip="{Binding ModeReadoutHint}"/>
+                            <TextBlock Text="{Binding PlcFeedbackText}" ToolTip="{Binding StatusText}" Style="{StaticResource WorkspaceStatusText}"/>
                         </StackPanel>
-                        <TextBlock Grid.Column="1" Text="{Binding PermissionText}" Foreground="White" FontSize="13" Margin="16,0,0,0"/>
+                        <TextBlock Grid.Column="1" Text="{Binding PermissionText}" Style="{StaticResource WorkspaceStatusText}" FontSize="13" Margin="16,0,0,0"/>
                     </Grid>
                 </Border>
             </Grid>
@@ -51,7 +51,7 @@
                                   prism:RegionManager.RegionName="{x:Static share:RegionNames.WorkspaceRegion}">
             <ui:ResidentWorkspaceHost.Template><ControlTemplate TargetType="ui:ResidentWorkspaceHost"><Grid x:Name="PART_Pages" ClipToBounds="True"/></ControlTemplate></ui:ResidentWorkspaceHost.Template>
         </ui:ResidentWorkspaceHost>
-        <Border Grid.Row="2" Background="#F6F9FD" BorderBrush="#DAE5F1" BorderThickness="0,1,0,0" Padding="14,8">
+        <Border Grid.Row="2" Style="{StaticResource WorkspaceDiagnosticsFrame}">
             <Expander Header="运行诊断" MaxHeight="160"><ScrollViewer VerticalScrollBarVisibility="Auto"><StackPanel>
                 <TextBlock Text="{Binding StatusText}" TextWrapping="Wrap" FontWeight="SemiBold"/>
                 <TextBlock Text="{Binding HistoryText}" TextWrapping="Wrap" Margin="0,4,0,0"/>
