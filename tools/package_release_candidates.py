@@ -8,6 +8,8 @@ import subprocess
 from tempfile import TemporaryDirectory
 from zipfile import ZIP_DEFLATED, ZipFile
 
+from release_source import copy_source, source_fingerprint
+
 
 ROOT = Path(__file__).resolve().parents[1]
 CANDIDATES = {"PlcHmi": "PlcHmi-ReleaseCandidate", "FlyScan": "FlyScan-Simulation"}
@@ -47,7 +49,7 @@ def check_inventory(app, files, read_file):
         raise ValueError(f"The {app} payload contains another product's components.")
 
 
-def package(app, name, publish, output):
+def package(app, name, publish, output, source, source_inputs):
     files = {}
     for path in sorted(publish.rglob("*")):
         if not path.is_file():
@@ -60,10 +62,10 @@ def package(app, name, publish, output):
             continue
         files[relative.as_posix()] = path
     if app == "PlcHmi":
-        files["Config/Database.example.json"] = ROOT / "Framework/Company.Database.SqlSugar/Database.example.json"
+        files["Config/Database.example.json"] = source / "Framework/Company.Database.SqlSugar/Database.example.json"
     check_inventory(app, set(files), lambda relative: files[relative].read_bytes())
     manifest = {"application": app, "artifact": name, "configuration": "Release",
-                "requires": RUNTIME, "sha256": {}}
+                "requires": RUNTIME, "sourceInputs": source_inputs, "sha256": {}}
     archive = output / f"{name}.zip"
     with ZipFile(archive, "x", ZIP_DEFLATED) as bundle:
         for relative, path in files.items():
@@ -86,18 +88,21 @@ def main():
     if output.exists():
         parser.error("--output must refer to a new directory.")
     output.parent.mkdir(parents=True, exist_ok=True)
-    with TemporaryDirectory(prefix="release-", dir=output.parent) as temporary:
+    with TemporaryDirectory(prefix="prism-publish-") as workspace, TemporaryDirectory(prefix="release-", dir=output.parent) as temporary:
+        source = Path(workspace) / "src"
+        copy_source(ROOT, source)
+        source_inputs = source_fingerprint(source, release_only=True)
         staging = Path(temporary) / "packages"
         staging.mkdir()
         for app, name in CANDIDATES.items():
-            publish = Path(temporary) / app
+            publish = Path(workspace) / app
             command = ["dotnet", "publish", "Company.Shell/Company.Shell.csproj", "-c", "Release",
                        f"-p:CompanyProduct={app}", "--self-contained", "false", "-m:1",
                        "-p:SkipPlcHmiConfigurationSeed=true", "-o", str(publish)]
             if args.restore_source:
                 command.extend((f"-p:RestoreSources={args.restore_source.resolve()}", "-p:NuGetAudit=false"))
-            subprocess.run(command, cwd=ROOT, check=True)
-            package(app, name, publish, staging)
+            subprocess.run(command, cwd=source, check=True)
+            package(app, name, publish, staging, source, source_inputs)
         staging.rename(output)
 
 
