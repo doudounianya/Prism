@@ -11,6 +11,8 @@ public interface IModeDiagramFeedback
     bool? Action(int index);
     bool? Signal(int index);
     bool CanRequest(string action);
+    /// <summary>已有按住动作是否还能等待释放。与当前反馈是否允许发起一个新动作分开判断。</summary>
+    bool CanKeepMomentary(string action) => true;
 }
 
 public interface IModeControlPage : INotifyPropertyChanged

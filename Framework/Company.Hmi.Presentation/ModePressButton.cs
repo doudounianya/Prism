@@ -54,7 +54,7 @@ public static class ModePressButton
         if (hold.Active || !button.IsEnabled) return;
         hold.Active = true; button.RaiseEvent(new RoutedEventArgs(PressedEvent, button));
     }
-    private static void Release(Button button)
+    internal static void Release(Button button)
     {
         var hold = State(button);
         if (!hold.Active) return;

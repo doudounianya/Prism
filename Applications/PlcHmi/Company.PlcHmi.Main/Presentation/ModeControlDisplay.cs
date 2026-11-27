@@ -8,6 +8,12 @@ public sealed record ModeControlDisplay(int? Mode, int? Status, IReadOnlyList<bo
 {
     public bool SupportsPersonnelLocks => true;
     public bool CanRequest(string action) => TryRequest(action, out _, out _);
+    public bool CanKeepMomentary(string action) => action switch
+    {
+        "Stop" => CanStop,
+        "Initialize" => CanWrite && Signal(5) == false,
+        _ => false,
+    };
     public static ModeControlDisplay Empty { get; } = new(null, null, new bool?[9], new bool?[6], false);
     /// <summary>独立于一般模式操作的调试角色许可，图内和底部按钮共用，不能借查看页签获得权限。</summary>
     public bool CanDebug { get; init; }

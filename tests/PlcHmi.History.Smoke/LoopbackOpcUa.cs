@@ -6,7 +6,8 @@ using Opc.Ua;
 using Opc.Ua.Security.Certificates;
 using Opc.Ua.Server;
 
-internal sealed class LoopbackOpcUa(int port, bool verifyParameters = false) : IDisposable
+internal sealed class LoopbackOpcUa(int port, bool verifyParameters, bool verifyModeOperations, bool extraIoGroup,
+    SharedIoFixture? sharedIo) : IDisposable
 {
     internal const string AddressSpace = "urn:prism:plc:opcua-test";
     private const string ApplicationUri = "urn:prism:plc:opcua-test:server";
@@ -14,9 +15,10 @@ internal sealed class LoopbackOpcUa(int port, bool verifyParameters = false) : I
     private FixtureServer? active;
 
     public string Endpoint => $"opc.tcp://127.0.0.1:{port}/CRT";
+    public SharedIoFixture? SharedIo => sharedIo;
     public FixtureNodes Nodes => active?.Nodes ?? throw new InvalidOperationException("The OPC UA fixture is offline.");
 
-    public async Task ConnectAsync(bool reconnected = false)
+    public async Task ConnectAsync(bool reconnected = false, FixtureMode? initialMode = null)
     {
         if (active is not null || port is < 1 or > 65535 || Listeners().Length != 0)
             throw new InvalidOperationException("The OPC UA fixture port is unavailable.");
@@ -49,7 +51,7 @@ internal sealed class LoopbackOpcUa(int port, bool verifyParameters = false) : I
             TraceConfiguration = new TraceConfiguration(),
         };
         await configuration.Validate(ApplicationType.Server);
-        var replacement = new FixtureServer(reconnected, verifyParameters);
+        var replacement = new FixtureServer(reconnected, verifyParameters, verifyModeOperations, extraIoGroup, initialMode, sharedIo);
         try
         {
             replacement.Start(configuration);
@@ -82,13 +84,14 @@ internal sealed class LoopbackOpcUa(int port, bool verifyParameters = false) : I
         finally { certificate?.Dispose(); }
     }
 
-    private sealed class FixtureServer(bool reconnected, bool verifyParameters) : StandardServer
+    private sealed class FixtureServer(bool reconnected, bool verifyParameters, bool verifyModeOperations,
+        bool extraIoGroup, FixtureMode? initialMode, SharedIoFixture? sharedIo) : StandardServer
     {
         public FixtureNodes Nodes { get; private set; } = null!;
 
         protected override MasterNodeManager CreateMasterNodeManager(IServerInternal server, ApplicationConfiguration configuration)
         {
-            Nodes = new FixtureNodes(server, configuration, reconnected, verifyParameters);
+            Nodes = new FixtureNodes(server, configuration, reconnected, verifyParameters, verifyModeOperations, extraIoGroup, initialMode, sharedIo);
             return new MasterNodeManager(server, configuration, null, Nodes);
         }
 
@@ -104,19 +107,27 @@ internal sealed class LoopbackOpcUa(int port, bool verifyParameters = false) : I
     }
 }
 
-internal sealed class FixtureNodes(IServerInternal server, ApplicationConfiguration configuration, bool reconnected, bool verifyParameters)
+internal sealed record FixtureMode(short Mode, short Status, bool[] ActionBank);
+
+internal sealed class FixtureNodes(IServerInternal server, ApplicationConfiguration configuration, bool reconnected,
+    bool verifyParameters, bool verifyModeOperations, bool extraIoGroup, FixtureMode? initialMode, SharedIoFixture? sharedIo)
     : CustomNodeManager2(server, configuration, LoopbackOpcUa.AddressSpace)
 {
     internal const string StopBankNode = "Fixture.System.st_UnitMode[0].b_Action";
     private readonly Dictionary<string, BaseDataVariableState> values = new(StringComparer.Ordinal);
-    private readonly List<bool> stopWrites = [];
+    private readonly List<(int Bit, bool Value)> modeWrites = [];
     private readonly List<(string Key, object Value)> parameterWrites = [];
     private readonly Dictionary<string, ParameterPoint> writablePoints = new(StringComparer.Ordinal);
     private int rejectedWrites;
 
     public (bool[] Stop, int Rejected) WriteTrace()
     {
-        lock (Lock) return (stopWrites.ToArray(), rejectedWrites);
+        lock (Lock) return (modeWrites.Where(write => write.Bit == 3).Select(write => write.Value).ToArray(), rejectedWrites);
+    }
+
+    public (int Bit, bool Value)[] ModeWrites()
+    {
+        lock (Lock) return modeWrites.ToArray();
     }
 
     public bool[] ActionBank()
@@ -124,21 +135,35 @@ internal sealed class FixtureNodes(IServerInternal server, ApplicationConfigurat
         lock (Lock) return ((bool[])values[StopBankNode].Value).ToArray();
     }
 
+    public void ClearActionAsPlc(int bit)
+    {
+        lock (Lock)
+        {
+            var actions = ActionBank();
+            actions[bit] = false;
+            Set(StopBankNode, actions);
+        }
+    }
+
     public (string Key, object Value)[] ParameterWrites()
     {
         lock (Lock) return parameterWrites.ToArray();
     }
 
-    public void SetMode(short mode, short status, bool debugRequest = false)
+    public void SetMode(short mode, short status, bool? debugRequest = null, bool initialized = false)
     {
         lock (Lock)
         {
             Set("i_Mode", mode);
             Set("i_Status", status);
-            var actions = ((bool[])values[StopBankNode].Value).ToArray();
-            actions[6] = debugRequest;
-            Set(StopBankNode, actions);
+            if (debugRequest is { } request)
+            {
+                var actions = ((bool[])values[StopBankNode].Value).ToArray();
+                actions[6] = request;
+                Set(StopBankNode, actions);
+            }
             var feedback = new bool[6];
+            feedback[0] = initialized;
             feedback[5] = status == 70;
             Set("b_Signal", feedback);
         }
@@ -169,16 +194,32 @@ internal sealed class FixtureNodes(IServerInternal server, ApplicationConfigurat
                 externalReferences[ObjectIds.ObjectsFolder] = references = new List<IReference>();
             references.Add(new NodeStateReference(ReferenceTypeIds.Organizes, false, folder.NodeId));
 
-            AddVariable(folder, "i_Mode", (short)0);
-            AddVariable(folder, "i_Status", (short)0);
-            AddVariable(folder, StopBankNode, new bool[9], AccessLevels.CurrentReadOrWrite);
+            AddVariable(folder, "i_Mode", initialMode?.Mode ?? (short)0);
+            AddVariable(folder, "i_Status", initialMode?.Status ?? (short)0);
+            AddVariable(folder, StopBankNode, initialMode?.ActionBank.ToArray() ?? new bool[9], AccessLevels.CurrentReadOrWrite);
             AddVariable(folder, "b_Signal", new bool[6]);
             var input = new bool[16];
             input[0] = !reconnected;
             input[1] = reconnected;
+            if (sharedIo is not null)
+            {
+                var sample = reconnected ? sharedIo.DiAfter : sharedIo.DiBefore;
+                Array.Copy(sample, input, sample.Length);
+            }
             AddVariable(folder, "DI", input);
+            if (extraIoGroup)
+            {
+                var secondInput = new bool[16];
+                secondInput[1] = true;
+                AddVariable(folder, "DI1", secondInput);
+            }
             var output = new bool[16];
             output[0] = true;
+            if (sharedIo is not null)
+            {
+                var sample = reconnected ? sharedIo.DoAfter : sharedIo.DoBefore;
+                Array.Copy(sample, output, sample.Length);
+            }
             AddVariable(folder, "DO", output);
             if (verifyParameters)
             {
@@ -203,14 +244,21 @@ internal sealed class FixtureNodes(IServerInternal server, ApplicationConfigurat
                 var request = requests[index];
                 if (request.Processed || request.NodeId.NamespaceIndex != NamespaceIndex) continue;
                 request.Processed = true;
-                if (request.NodeId.Identifier is StopBankNode && (request.IndexRange == "3" || verifyParameters && request.IndexRange == "6") &&
+                int bit = request.IndexRange switch
+                {
+                    "3" => 3,
+                    "6" when verifyParameters => 6,
+                    "7" when verifyModeOperations => 7,
+                    "8" when verifyModeOperations => 8,
+                    _ => -1,
+                };
+                if (request.NodeId.Identifier is StopBankNode && bit >= 0 &&
                     request.AttributeId == Attributes.Value && request.Value.Value is bool[] { Length: 1 } value)
                 {
                     var bank = ((bool[])values[StopBankNode].Value).ToArray();
-                    int bit = request.IndexRange == "3" ? 3 : 6;
                     bank[bit] = value[0];
                     Set(StopBankNode, bank);
-                    if (bit == 3) stopWrites.Add(value[0]);
+                    modeWrites.Add((bit, value[0]));
                     results[index] = ServiceResult.Good;
                 }
                 else if (request.NodeId.Identifier is string node && writablePoints.TryGetValue(node, out var point) &&

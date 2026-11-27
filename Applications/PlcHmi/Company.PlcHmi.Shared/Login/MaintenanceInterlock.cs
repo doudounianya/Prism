@@ -23,14 +23,14 @@ public static class MaintenanceInterlock
     {
         try
         {
-            if (File.Exists(FileName))
-            {
-                _state = JsonSerializer.Deserialize<Saved>(File.ReadAllText(FileName)) ?? throw new IOException("维护记录为空。");
-                if (_state.People is null || _state.People.Any(p => p.Id <= 0) || _state.People.Select(p => p.Id).Distinct().Count() != _state.People.Length)
-                    throw new IOException("维护人员记录不完整。");
-            }
+            var saved = JsonSerializer.Deserialize<Saved>(File.ReadAllText(FileName)) ?? throw new IOException("维护记录为空。");
+            if (saved.People is null || saved.People.Any(p => p.Id <= 0) || saved.People.Select(p => p.Id).Distinct().Count() != saved.People.Length)
+                throw new IOException("维护人员记录不完整。");
+            _state = saved;
         }
-        catch { _state = new([], true, DateTimeOffset.MinValue); _unreadable = true; } // 不能把读取失败当作“无人上锁”。
+        // 直接读取，避免 File.Exists 把访问失败或路径类型错误报告为文件不存在。
+        catch (IOException error) when (error is FileNotFoundException or DirectoryNotFoundException) { }
+        catch { _state = new([], true, DateTimeOffset.MinValue); _unreadable = true; }
     }
     public static Person[] People { get { lock (Sync) return _state.People.ToArray(); } }
     public static bool Blocked { get { lock (Sync) return _unreadable || _state.PlcHeld || _state.People.Length > 0; } }

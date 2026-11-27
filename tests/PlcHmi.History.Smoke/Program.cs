@@ -35,7 +35,9 @@ internal static partial class Program
     {
         Console.OutputEncoding = Encoding.UTF8;
         string root = AppContext.BaseDirectory;
-        if (args is not ["seed" or "read" or "opcua" or "parameters"] || !File.Exists(Path.Combine(root, "history-fixture.json")))
+        if (args is not [var mode] ||
+            !(mode is "seed" or "read" or "opcua" or "parameters" or "mode-operations" || IsLifecycle(mode) || IsDesktopRollback(mode)) ||
+            !File.Exists(Path.Combine(root, "history-fixture.json")))
             return 2;
         if (Mutex.TryOpenExisting(@"Local\CRT_HMI.SingleInstance", out var existing))
         {
@@ -54,44 +56,84 @@ internal static partial class Program
             "isolated database and fixture workbook verified before startup");
         Environment.SetEnvironmentVariable("PRISM_DATABASE_PROVIDER", null);
         Environment.SetEnvironmentVariable("PRISM_DATABASE_CONNECTION_STRING", null);
-        string mode = args[0];
-        bool loopback = mode is "opcua" or "parameters";
+        bool desktopRollback = IsDesktopRollback(mode);
+        bool verifyModeOperations = mode == "mode-operations" || IsLifecycle(mode) || desktopRollback;
+        bool verifyParameters = verifyModeOperations || mode == "parameters";
+        bool loopback = mode == "opcua" || verifyParameters;
         if (loopback != fixture.OpcUaPort.HasValue) return 2;
-        using var opcua = fixture.OpcUaPort is { } port ? new LoopbackOpcUa(port, mode == "parameters") : null;
+        SharedIoFixture? sharedIo = null;
+        if (mode == "opcua")
+        {
+            (sharedIo, var hash) = SharedIoFixture.Load();
+            Console.WriteLine($"Shared IO fixture SHA-256 {hash}");
+        }
+        if (fixture.SecondOpcUaPort.HasValue != (sharedIo is not null) ||
+            (fixture.SecondOpcUaPort.HasValue && fixture.SecondOpcUaPort == fixture.OpcUaPort)) return 2;
+        using var opcua = fixture.OpcUaPort is { } port
+            ? new LoopbackOpcUa(port, verifyParameters, verifyModeOperations, desktopRollback || sharedIo is not null, sharedIo) : null;
+        using var secondIo = fixture.SecondOpcUaPort is { } secondPort && sharedIo is { } sample
+            ? new LoopbackOpcUa(secondPort, false, false, false,
+                new SharedIoFixture(sample.DiBefore.Select(value => !value).ToArray(), sample.DoBefore.Select(value => !value).ToArray(),
+                    sample.DiAfter.Select(value => !value).ToArray(), sample.DoAfter.Select(value => !value).ToArray())) : null;
         AssemblyLoadContext.Default.Resolving += (context, name) =>
         {
             var path = Path.Combine(root, "Modules", name.Name + ".dll");
             return File.Exists(path) ? context.LoadFromAssemblyPath(path) : null;
         };
 
-        if (loopback)
+        if (mode is "opcua" or "parameters" or "mode-operations" or "lifecycle")
             Check(typeof(Company.PlcHmi.Shell.App).Assembly.EntryPoint?.DeclaringType?.FullName == "Company.Shell.Program",
                 "PLC HMI executable uses the common shell entry point");
         var app = new Company.PlcHmi.Shell.App();
         app.InitializeComponent();
         app.Startup += (_, _) => app.Dispatcher.InvokeAsync(async () =>
         {
-            try { await Verify(app, fixture.AccountSecret, mode, opcua); }
+            try { await Verify(app, fixture.AccountSecret, mode, opcua, secondIo); }
             catch (Exception error)
             {
                 Console.Error.WriteLine(error);
                 app.Shutdown(1);
             }
         }, DispatcherPriority.ApplicationIdle);
-        return app.Run();
+        var exitCode = app.Run();
+        if (exitCode == 0 && (desktopRollback || IsLifecycle(mode)))
+        {
+            if (IsDesktopMaintenance(mode))
+                VerifyDesktopMaintenanceAfterExit(mode, opcua!.Nodes);
+            else if (desktopRollback)
+                Check(opcua!.Nodes.ModeWrites().Length == 0 && opcua.Nodes.ParameterWrites().Length == 0 &&
+                    opcua.Nodes.WriteTrace().Rejected == 0, "closing after reconnect adds no PLC commands");
+            else
+                VerifyLifecycleAfterExit(mode, opcua!.Nodes);
+            WriteExitTiming();
+        }
+        return exitCode;
     }
 
-    private static async Task Verify(Company.PlcHmi.Shell.App app, string secret, string mode, LoopbackOpcUa? opcua)
+    private static async Task Verify(Company.PlcHmi.Shell.App app, string secret, string mode,
+        LoopbackOpcUa? opcua, LoopbackOpcUa? secondIo)
     {
         var window = (Company.PlcHmi.Shell.Views.MainWindow)app.MainWindow;
         var container = PrismProvider.Container;
+        bool desktopRollback = IsDesktopRollback(mode);
         await Wait(() => Active(RegionNames.MainRegion)?.GetType().Name == ViewNames.LoginView, "packaged login view loaded");
         if (opcua is not null)
         {
             // The login shell has not loaded the configuration module yet. Preflight the file without starting any device.
             var preflight = new PlcBindingConfigProvider(new PlcBindingExcelLoader(), new PlcBindingValidator());
-            await ValidateLoopbackWorkbook(preflight, opcua, mode == "parameters");
-            await opcua.ConnectAsync();
+            bool verifyModeOperations = mode == "mode-operations" || IsLifecycle(mode) || desktopRollback;
+            await ValidateLoopbackWorkbook(preflight, opcua, verifyModeOperations || mode == "parameters",
+                verifyModeOperations, extraIoGroup: desktopRollback || opcua.SharedIo is not null, secondIo: secondIo);
+            var initialMode = mode switch
+            {
+                "desktop-lock-seed" => null,
+                "desktop-lock-upgrade" => RetainedMaintenance(requested: true),
+                "desktop-lock-rollback" or "lifecycle-maintenance-restart" => RetainedMaintenance(requested: false),
+                _ when mode is "lifecycle" or "lifecycle-unreadable-lock" || desktopRollback => InitiallyInDebug(),
+                _ => null,
+            };
+            await opcua.ConnectAsync(initialMode: initialMode);
+            if (secondIo is not null) await secondIo.ConnectAsync();
             Console.WriteLine("PASS OPC UA fixture listening on IPv4 loopback only");
         }
         var session = container.Resolve<ISession>();
@@ -102,16 +144,43 @@ internal static partial class Program
         }
         else
         {
-            if (mode != "read")
+            if (mode is not ("read" or "desktop-live" or "desktop-restore") && !IsDesktopMaintenance(mode) &&
+                (!IsLifecycle(mode) || mode == "lifecycle"))
                 SeedAccount(container.Resolve<IUserAccountRepository>(), UserName, UserRole.Administrator, secret);
             await Login(session, UserName, UserRole.Administrator, secret);
-            if (opcua is not null)
-                await VerifyOpcUa(window, container.Resolve<IPlcRuntime>(), opcua);
+            if (mode == "mode-operations")
+                await VerifyModeOperations(window, container, session, secret, opcua!.Nodes);
+            else if (IsLifecycle(mode))
+                await VerifyLifecycle(window, container, opcua!, mode, secret);
+            else if (IsDesktopMaintenance(mode))
+                await VerifyDesktopMaintenance(window, container, opcua!.Nodes, mode, secret);
+            else if (desktopRollback)
+                await VerifyDesktopRollback(window, container, session, opcua!, mode);
+            else if (opcua is not null)
+                await VerifyOpcUa(window, container.Resolve<IPlcRuntime>(), opcua,
+                    extraIoGroup: opcua.SharedIo is not null, secondIo: secondIo);
             else
                 await VerifyHistory(window, container);
-            await Logout(window, session);
+            if (!desktopRollback && !IsLifecycle(mode))
+                await Logout(window, session);
         }
 
+        var dialog = await RequestClose(window);
+        var closing = Stopwatch.StartNew();
+        window.Closed += (_, _) =>
+        {
+            if (desktopRollback || IsLifecycle(mode))
+                RecordLifecycleClose(closing.ElapsedMilliseconds);
+            Console.WriteLine("PASS packaged window closed normally");
+        };
+        Click(FindButton(dialog, "关闭程序"));
+    }
+
+    private static bool IsDesktopRollback(string mode) =>
+        mode is "desktop-seed" or "desktop-live" or "desktop-restore" || IsDesktopMaintenance(mode);
+
+    private static async Task<MessageDialog> RequestClose(Company.PlcHmi.Shell.Views.MainWindow window)
+    {
         window.Close();
         MessageDialog? dialog = null;
         var clock = Stopwatch.StartNew();
@@ -122,8 +191,7 @@ internal static partial class Program
             await Task.Delay(40);
         }
         Check(dialog is { IsLoaded: true }, "close confirmation displayed");
-        window.Closed += (_, _) => Console.WriteLine("PASS packaged window closed normally");
-        Click(FindButton(dialog!, "关闭程序"));
+        return dialog!;
     }
 
     private static void SeedAccount(IUserAccountRepository accounts, string userName, UserRole role, string secret) =>
@@ -173,6 +241,11 @@ internal static partial class Program
             container.Resolve<IPlcRuntime>().Status.Devices.Count == 0 &&
             !container.Resolve<IUserAccessService>().CanEditParameters, "PLC devices disabled and parameter controls read-only");
 
+        await VerifyHistoryQueries(window, nightCount: 17);
+    }
+
+    private static async Task VerifyHistoryQueries(Window window, int nightCount)
+    {
         Click(FindButton(window, "报警监控"));
         await Wait(() => Active(RegionNames.WorkspaceRegion)?.GetType().Name == ViewNames.RealtimeAlarmView, "alarm workspace opens");
         var alarms = await Navigate<AlarmHistoryViewModel>(window, "历史报警", ViewNames.AlarmHistoryView);
@@ -191,12 +264,14 @@ internal static partial class Program
         daily.Filter.DeviceId = "PLC01";
         daily.Filter.Date = ProductionDate;
         await daily.QueryAsync();
-        Check(daily.First == "58", "daily report restores 58 pieces");
+        string total = (41 + nightCount).ToString(System.Globalization.CultureInfo.InvariantCulture);
+        Check(daily.First == total, $"daily report shows {total} pieces");
         var trend = await Navigate<ProductionTrendViewModel>(window, "产量趋势", ViewNames.ProductionTrendView);
         trend.Filter.DeviceId = "PLC01";
         trend.Filter.FromDate = trend.Filter.ToDate = ProductionDate;
         await trend.QueryAsync();
-        Check(trend.HasQuery && trend.Day == "41" && trend.Night == "17" && trend.Total == "58", "trend restores 41 day and 17 night pieces");
+        Check(trend.HasQuery && trend.Day == "41" && trend.Night == nightCount.ToString(System.Globalization.CultureInfo.InvariantCulture) &&
+            trend.Total == total, $"trend shows 41 day and {nightCount} night pieces");
 
     }
 
@@ -233,5 +308,5 @@ internal static partial class Program
     private static void Click(Button button) =>
         ((IInvokeProvider)new ButtonAutomationPeer(button).GetPattern(PatternInterface.Invoke)!).Invoke();
 
-    private sealed record Fixture(string AccountSecret, string WorkbookSha256, int? OpcUaPort);
+    private sealed record Fixture(string AccountSecret, string WorkbookSha256, int? OpcUaPort, int? SecondOpcUaPort);
 }

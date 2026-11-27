@@ -183,8 +183,9 @@ public sealed class ModeControlViewModel : ReactiveObject, INavigationAware, IRe
     }
     private async Task ObserveAsync()
     {
+        if (!_active || !_visible) await ReleaseMomentaryRequestsAsync();
+        // 松开复位期间可能重新显示页面，以最新可见性决定采集和订阅。
         var observing = _active && _visible;
-        if (!observing) await ReleaseMomentaryRequestsAsync();
         if (_observing != observing)
         {
             _observing = observing;

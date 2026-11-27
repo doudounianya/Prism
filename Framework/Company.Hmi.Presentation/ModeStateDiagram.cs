@@ -316,7 +316,13 @@ public sealed class ModeStateDiagram : Viewbox
             // 维护图上的入口只打开人员锁管理，不直接写 PLC。持锁或断线时也必须可进入验证/核对，
             // 真正上锁、解锁仍由人员管理服务校验身份、连接及当前反馈。
             bool maintenanceEntry = Kind == ModeDiagramKind.Maintenance;
-            button.IsEnabled = (maintenanceEntry && feedback.SupportsPersonnelLocks) || ((action is "Initialize" or "Stop") && ModePressButton.IsHeld(button)) || feedback.CanRequest(action);
+            bool held = (action is "Initialize" or "Stop") && ModePressButton.IsHeld(button);
+            if (held && !feedback.CanKeepMomentary(action))
+            {
+                ModePressButton.Release(button);
+                held = false;
+            }
+            button.IsEnabled = (maintenanceEntry && feedback.SupportsPersonnelLocks) || held || feedback.CanRequest(action);
             var index = action == "Stop" ? 3 : action.StartsWith("Debug", StringComparison.Ordinal) ? 6 : action == "Initialize" ? 7 : 8;
             // 维护图的六处文字均为人员管理入口说明，不把同一个维护请求位映射成六个“动作已激活”。
             // 固定中性色；当前模式/状态节点仍由上方节点循环按真实 PLC 反馈高亮。
