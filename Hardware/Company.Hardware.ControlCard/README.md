@@ -62,6 +62,35 @@ MoveAbsolute、MoveRelative、HomeAxis 等返回请求是否接受；完成须�
 
 MoveLinearPath 是全直线路径的便捷入口，与 StartTrajectory 共用校验及占用。轨迹终点为绝对位置，圆心为相对本段起点的平面偏移；不隐式产生整圆、多圈或螺旋。
 
+## 两轴测试接入
+
+业务代码依赖 [IMotionController](Contracts/IMotionController.cs)。使用 [两轴仿真配置](../../examples/Motion/TwoAxis.Simulation.json) 时，逻辑轴为 `AxisId.X`、`AxisId.Y`，示例轴号为 0、1，并包含一组仿真 DI 和 DO。轴号、毫米单位、软限位和速度均为该仿真示例的参数。
+
+| 用途 | 公共接口 |
+| --- | --- |
+| 会话与能力 | `Initialize`、`Close`、`GetIdentity`、`GetCapabilities` |
+| 单轴操作 | `SetAxisEnabled`、`ResetAxisFault`、`HomeAxis`、`MoveAbsolute`、`MoveRelative`、`JogAxis`、`TryStop` |
+| 等待与确认 | `WaitForAxisIdle`、`RefreshAxisState`、`AxisStates` |
+| 数字 IO | `RefreshInputs`、`InputStates`、`WriteOutput`、`RefreshOutputs`、`OutputStates` |
+
+在应用或测试入口加载配置，再从工厂解析仿真控制器。
+
+```csharp
+var profile = MotionConfigurationFile.Load("examples/Motion/TwoAxis.Simulation.json");
+profile.Enabled = true;
+IMotionController controller = factory.Get(MotionDriverKind.Simulation);
+if (!controller.Initialize(profile))
+    throw new InvalidOperationException("两轴仿真初始化失败。");
+```
+
+操作方法的返回值表示请求是否被接受。业务以有效的 `Homed`、`Arrived`、`Busy` 和实际位置反馈决定下一步，结束会话时调用 `Close()`。两轴示例提供独立单轴动作，现有 `MoveLinearPath` 和 `StartTrajectory` 需要配置三个轴的插补组。
+
+```powershell
+dotnet run --project tests/Motion.Configuration.Smoke/Motion.Configuration.Smoke.csproj -- examples/Motion/FlyScan.13Axes.json
+```
+
+此入口一并复跑两轴、十三轴和原四轴默认配置。
+
 ## 驱动扩展和旧名称迁移
 
 具体驱动继承 MotionControllerBase：OpenCore/ConfigureCore/CloseCore 管理资源，MoveAbsoluteCore/StartHomingCore 实现单轴协议，SubmitTrajectoryCore 等实现轨迹协议。所有扩展点先经过公共入口校验；SDK 声明、原生库和厂商选项仍在各厂商项目。

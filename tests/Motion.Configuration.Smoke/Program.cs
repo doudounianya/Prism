@@ -78,9 +78,75 @@ var negative=clean.Snapshot();negative.Synchronizations[0].Ratio=-2;negative.Ena
 Check(card.Initialize(negative)&&card.SetAxisEnabled(null,true,out _),"reverse ratio initialization");
 Check(card.MoveRelative(master,10,out _),"reverse ratio master move");clock.Advance(2);card.RefreshAxisState(null);
 Check(Math.Abs(card.AxisStates.Single(a=>a.Axis==slave).ActualPosition+20)<1e-9,"reverse ratio displacement");card.Close();
+VerifyTwoAxis(Check);
 var result=new{passed=checks.Count,checks,realHardwareConnected=false};
 if(args.Length>1)File.WriteAllText(args[1],JsonSerializer.Serialize(result,new JsonSerializerOptions{WriteIndented=true}));
 Console.WriteLine($"Configurable motion checks: {checks.Count}/{checks.Count}; no real hardware connected.");
+
+static void VerifyTwoAxis(Action<bool, string> check)
+{
+    var profilePath = Path.Combine(AppContext.BaseDirectory, "TwoAxis.Simulation.json");
+    var profile = MotionConfigurationFile.Load(profilePath);
+    var clock = new ManualClock();
+    var simulation = NoneControlCard.CreateForSimulation(clock);
+    IMotionController controller = simulation;
+
+    check(!profile.Enabled && !profile.AllowNativeHardware &&
+        profile.Axes.Select(axis => axis.Axis).SequenceEqual([AxisId.X, AxisId.Y]) &&
+        profile.Coordinates.Length == 0 && profile.Synchronizations.Length == 0,
+        "two-axis profile declares X and Y only and starts disabled");
+
+    profile.Enabled = true;
+    check(controller.Initialize(profile), "two-axis simulation initializes without a coordinate group");
+    try
+    {
+        check(controller.AxisStates.Count == 2 && controller.CoordinateStates.Count == 0,
+            "feedback contains exactly the two configured axes");
+        check(controller.SetAxisEnabled(null, true, out _), "enable both configured axes");
+        check(controller.MoveAbsolute(AxisId.X, 4, out _), "X absolute positioning is accepted");
+        check(controller.MoveRelative(AxisId.Y, -3, out _), "Y relative positioning is accepted independently of X");
+        clock.Advance(0.1);
+        check(controller.RefreshAxisState(null) && controller.AxisStates.All(axis => axis.Valid && axis.Busy),
+            "both independent positioning requests report motion");
+        clock.Advance(1);
+        check(controller.WaitForAxisIdle(AxisId.X, TimeSpan.FromSeconds(1), CancellationToken.None, out _) &&
+            controller.WaitForAxisIdle(AxisId.Y, TimeSpan.FromSeconds(1), CancellationToken.None, out _),
+            "two-axis positioning can wait for each axis to become idle");
+        check(controller.AxisStates.Single(axis => axis.Axis == AxisId.X) is { Valid: true, Arrived: true, ActualPosition: 4 } &&
+            controller.AxisStates.Single(axis => axis.Axis == AxisId.Y) is { Valid: true, Arrived: true, ActualPosition: -3 },
+            "position feedback confirms both axis targets");
+
+        check(controller.HomeAxis(AxisId.X, out _), "X homing request is accepted");
+        clock.Advance(1);
+        check(controller.RefreshAxisState(AxisId.X) &&
+            controller.AxisStates.Single(axis => axis.Axis == AxisId.X) is { Valid: true, Homed: true, Busy: false },
+            "fresh feedback confirms X homing");
+        check(controller.JogAxis(AxisId.Y, JogDirection.Positive, out _), "Y jog request is accepted");
+        clock.Advance(0.25);
+        check(controller.RefreshAxisState(AxisId.Y) &&
+            controller.AxisStates.Single(axis => axis.Axis == AxisId.Y) is { Valid: true, Busy: true, ActualPosition: > -3 },
+            "Y jog moves in the requested direction");
+        check(controller.TryStop(AxisId.Y, StopMode.Decelerate, out _) && controller.RefreshAxisState(AxisId.Y) &&
+            controller.AxisStates.Single(axis => axis.Axis == AxisId.Y) is { Valid: true, Busy: false, ActualVelocity: 0 },
+            "Y stops and the next read confirms it is stationary");
+        check(!controller.MoveAbsolute(AxisId.X, 21, out _) && !controller.MoveAbsolute(AxisId.Z, 1, out _),
+            "two-axis commands reject a target beyond the configured limit and an unconfigured axis");
+
+        check(simulation.SetSimulatedInput(0, 0, true) && controller.RefreshInputs(out _) &&
+            controller.InputStates.Single(point => point.Bank == 0 && point.Bit == 0) is { Available: true, Valid: true, Value: true },
+            "two-axis simulation reads the test input");
+        check(controller.WriteOutput(new DigitalPointState(0, 0), true, out _) && controller.RefreshOutputs(out _) &&
+            controller.OutputStates.Single(point => point.Bank == 0 && point.Bit == 0) is { Available: true, Valid: true, Value: true },
+            "two-axis simulation can write and read back the test output");
+    }
+    finally
+    {
+        controller.Close();
+    }
+
+    check(!controller.IsInitialized && controller.AxisStates.All(axis => !axis.Valid),
+        "closing the two-axis session invalidates feedback");
+}
 
 sealed class ManualClock:TimeProvider
 {

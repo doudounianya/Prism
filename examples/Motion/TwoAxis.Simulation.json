@@ -1,0 +1,34 @@
+{
+  "enabled": false,
+  "allowNativeHardware": false,
+  "inputBankCount": 1,
+  "outputBankCount": 1,
+  "axes": [
+    {
+      "axis": "X",
+      "name": "仿真 X 轴",
+      "hardwareAxis": 0,
+      "kind": "Linear",
+      "unit": "Millimetre",
+      "softLimitEnabled": true,
+      "softLimitNegative": -20,
+      "softLimitPositive": 20,
+      "positioningVelocity": 10,
+      "jogVelocity": 4
+    },
+    {
+      "axis": "Y",
+      "name": "仿真 Y 轴",
+      "hardwareAxis": 1,
+      "kind": "Linear",
+      "unit": "Millimetre",
+      "softLimitEnabled": true,
+      "softLimitNegative": -20,
+      "softLimitPositive": 20,
+      "positioningVelocity": 10,
+      "jogVelocity": 4
+    }
+  ],
+  "coordinates": [],
+  "synchronizations": []
+}

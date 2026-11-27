@@ -1,4 +1,8 @@
 <Project Sdk="Microsoft.NET.Sdk">
  <PropertyGroup><OutputType>Exe</OutputType><TargetFramework>net8.0-windows</TargetFramework><ImplicitUsings>enable</ImplicitUsings><Nullable>enable</Nullable></PropertyGroup>
- <ItemGroup><ProjectReference Include="../../Hardware/Company.Hardware.ControlCard.None/Company.Hardware.ControlCard.None.csproj" /></ItemGroup>
+ <ItemGroup>
+  <ProjectReference Include="../../Hardware/Company.Hardware.ControlCard.None/Company.Hardware.ControlCard.None.csproj" />
+  <None Include="../../examples/Motion/TwoAxis.Simulation.json" Link="TwoAxis.Simulation.json"
+        CopyToOutputDirectory="PreserveNewest" />
+ </ItemGroup>
 </Project>
