@@ -20,6 +20,43 @@ code{font-family:Consolas,"Cascadia Mono",monospace;font-size:.91em;border-radiu
 details{margin:.8em 0;padding:8px 13px;border:1px solid var(--line);border-radius:7px;background:#fbfdff}summary{font-weight:650;cursor:pointer;color:var(--blue)}details[open] summary{margin-bottom:5px}.chapter-end{display:flex;justify-content:flex-end;font-size:.85em;margin-top:1.15em}.pill{display:inline-block;padding:0 .4em;border-radius:4px;background:#e3f3ee;color:#145948;font-weight:600;font-size:.85em}.partial{background:#fbf1dc;color:#74501e}.none{background:#eef0f2;color:#415666}
 @media(max-width:850px){.sidebar .toc>summary{display:list-item;color:#e4f0f9;margin:12px 0 0;padding:7px 10px;border:1px solid #58778d;border-radius:6px}.layout{display:block}.sidebar{position:static;height:auto;padding:14px 16px}.sidebar nav{grid-template-columns:repeat(auto-fit,minmax(134px,1fr));gap:3px;margin-top:9px}main{padding:14px 12px 28px}.hero,.chapter{padding:20px 17px}.sidebar a{font-size:.79em}.refs{line-height:1.9}}
 @media print{body{background:white}.layout{display:block}.sidebar,.skip,.search-box,.chapter-end{display:none}main{width:100%;padding:0}.hero{background:white;color:var(--ink);border:0;padding:0}.hero p,.hero .meta,.hero code{color:var(--ink)}.chapter{border:0;border-radius:0;padding:0;margin:0 0 1.5em}h2,h3,summary{break-after:avoid}tr,.flow,.callout{break-inside:avoid}pre{background:#f0f2f4;color:#172b3c}}
+
+.explainer-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin:1em 0}
+.explainer{border:1px solid var(--line);border-radius:8px;padding:13px 15px;background:#f8fbfd}
+.explainer h3,.run-card h4{margin:0 0 .35em}.explainer p:last-child,.run-card p:last-child{margin-bottom:0}
+.scenario-controls{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:1em 0}
+.scenario-controls[hidden],#runner-panel[hidden],#run-guides[hidden]{display:none}
+.scenario-controls label{font-weight:650}.scenario-controls select{max-width:100%;font:inherit;padding:5px 9px;color:var(--ink);background:white;border:1px solid #8ea8bb;border-radius:5px}
+.step-actions{display:flex;gap:6px;flex-wrap:wrap}
+.step-actions button,.run-track button{font:inherit;color:var(--blue);background:white;border:1px solid #8ea8bb;border-radius:6px;padding:5px 9px;cursor:pointer}
+.step-actions button:disabled{opacity:.55;cursor:default}.step-actions button:not(:disabled):hover,.run-track button:hover{background:var(--bluebg)}
+.step-status{font-size:.9em;color:var(--muted);margin:.4em 0}
+.run-track{display:grid;grid-template-columns:repeat(auto-fit,minmax(132px,1fr));gap:7px;padding:0;margin:.55em 0 .8em;list-style:none}
+.run-track li{margin:0}.run-track button{width:100%;height:100%;text-align:left;font-size:.88em;line-height:1.45;display:flex;gap:7px;align-items:flex-start}
+.run-track button[aria-current="step"]{background:#164e80;color:#fff;border-color:#164e80}.step-number{font-weight:700;min-width:1.25em}
+.run-card{background:#eef6fc;border:1px solid #cbdfed;border-radius:8px;padding:13px 16px;min-height:9.5em}
+.run-lane{color:#225b68;font-weight:700;font-size:.84em;margin:0 0 .38em}
+.run-source h4{margin:0 0 .24em}.run-source li{margin:.6em 0}.run-source .refs{margin-bottom:.6em}
+.lanes caption{text-align:left;color:var(--blue);font-weight:650;margin-bottom:.5em}
+@media(max-width:610px){.explainer-grid{grid-template-columns:1fr}.scenario-controls{display:grid;gap:6px}.scenario-controls select{width:100%}.run-track{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media print{.scenario-controls,#run-live{display:none!important}#run-guides[hidden]{display:block!important}}
+
+@media(max-width:680px){
+:is(#prism-core,#prism-adopt) .table-wrap table{min-width:0}
+:is(#prism-core,#prism-adopt) thead{clip-path:inset(50%);position:absolute;width:1px;height:1px;overflow:hidden}
+:is(#prism-core,#prism-adopt) tbody{display:grid;gap:8px}
+:is(#prism-core,#prism-adopt) tbody tr{display:block;border:1px solid var(--line);border-radius:7px;overflow:hidden}
+:is(#prism-core,#prism-adopt) td{display:block;border:0;padding:7px 10px;background:white}
+:is(#prism-core,#prism-adopt) td:first-child{background:var(--bluebg);font-weight:650}
+:is(#prism-core,#prism-adopt) td+td::before{content:attr(data-label);display:block;margin-bottom:.19em;color:var(--muted);font-size:.82em}
+}
+
+.sidebar .nav-group{display:grid;gap:3px;margin-top:7px}.sidebar .nav-group a:not(.nav-heading){padding-left:14px}
+.sidebar .nav-heading{font-weight:700;color:#b9d8ec;border-top:1px solid #35566d;border-radius:0;padding-top:10px}
+.part-banner{scroll-margin-top:1rem;margin:30px 0 13px;padding:9px 18px 10px;border-left:4px solid #326b91;background:#e1edf5;border-radius:0 8px 8px 0}
+.part-banner h2{margin:0;font-size:1.17rem;color:#153f60}.part-banner p{margin:.2em 0;color:var(--muted);font-size:.91em}
+@media(max-width:850px){.sidebar nav{display:block}.sidebar .nav-group{grid-template-columns:repeat(2,minmax(0,1fr))}.sidebar .nav-heading{grid-column:1/-1}.part-banner{margin-top:25px}}
+@media print{.part-banner{break-after:avoid;background:white}}
 </style>
 </head>
 <body>
@@ -27,28 +64,42 @@ details{margin:.8em 0;padding:8px 13px;border:1px solid var(--line);border-radiu
 <div class="layout">
 <aside class="sidebar" aria-label="章节导航">
 <a class="brand" href="#top">PrismFramework</a><span class="label">源码学习手册 · PLC HMI 与 FlyScan</span>
-<details class="toc" id="chapter-toc" open><summary>章节目录</summary><nav aria-label="目录"><a href="#start">从哪里开始</a>
+<details class="toc" id="chapter-toc" open><summary>章节目录</summary><nav aria-label="目录"><a href="#start">阅读路线</a>
+<div class="nav-group"><a class="nav-heading" href="#part-learn">第一篇 · 认识 Prism 并接入 WPF</a>
+<a href="#primer">先认识 C#、WPF 和 Prism</a>
+<a href="#prism-core">Prism 的核心机制</a>
+<a href="#wpf">用 MVVM 连接 WPF 和 C#</a>
+<a href="#prism-adopt">接入 Prism · 从宿主到第一个页面</a>
+</div>
+<div class="nav-group"><a class="nav-heading" href="#part-project">第二篇 · 看 Prism 在项目中怎么用</a>
 <a href="#map">项目地图与依赖方向</a>
-<a href="#startup">启动、Prism、依赖注入与退出</a>
-<a href="#wpf">从 C# 基础过渡到 WPF 和 MVVM</a>
-<a href="#alarm">第一条完整调用链 · FlyScan 实时报警</a>
+<a href="#startup">两个产品如何启动和退出</a>
+<a href="#prism-project">Prism 在项目中的实际落点</a>
+<a href="#walkthrough">跟着程序运行一次</a>
 <a href="#plc-read">PLC HMI · 从 OPC UA 到共享 IO 页面</a>
 <a href="#operations">操作、模式、参数与人员权限</a>
 <a href="#flyscan">FlyScan · 配方、两组扫描与恢复</a>
 <a href="#motion">运动控制 · 轴、坐标系、同步与厂商能力</a>
+<a href="#alarm">FlyScan 实时报警 · 从信号到界面</a>
+<a href="#threads">线程分工与数据怎么交接</a>
 <a href="#data">数据库 · 账户、PLC 历史和 FlyScan 本地记录</a>
 <a href="#runtime">异步、线程、CLR 与性能分析</a>
+</div>
+<div class="nav-group"><a class="nav-heading" href="#part-reference">附录 · 调试、验收与复习</a>
 <a href="#verify">验证、调试与发布</a>
 <a href="#updates">五批改动与离线复跑</a>
-<a href="#hiring">招聘要求与项目证据</a>
 <a href="#practice">独立维护的学习验收</a>
-<a href="#reference">术语速查与继续阅读</a></nav></details>
+<a href="#hiring">招聘要求与项目证据</a>
+<a href="#reference">术语速查与继续阅读</a>
+</div>
+</nav></details>
 </aside>
 <main id="main-content">
 <header id="top" class="hero">
 <h1>PrismFramework 源码学习手册</h1>
-<p>从一个报警如何显示开始，读通界面、装配、设备反馈、运动时序和数据持久化。适合已有 C# 基础、准备学习 WPF 工业桌面开发的工程师。</p>
+<p>先学会把 Prism 接入 WPF，再读懂它怎样在 PLC HMI 与 FlyScan 中装配应用、导航和交接数据。适合已有 C# 基础、希望跟着真实项目练习的工程师。</p>
 <p class="meta">源码基线为 2026-11-27 的 <a href="https://github.com/doudounianya/Prism/commit/7cb806d5dd718d4209b0531273f8f6c2163b3df5"><code>7cb806d</code></a>。页面支持离线阅读，源码位置以该提交的相对路径和行号标注。<a href="#updates">查看五批改动与离线复跑</a>。</p>
+<p><a href="#part-learn">第一篇 · 学会接入 Prism</a> · <a href="#part-project">第二篇 · 读懂项目实现</a> · <a href="#part-reference">调试与验收附录</a></p>
 </header>
 <div class="search-box" id="search-box" hidden>
 <div class="search-row"><label for="chapter-search">搜索全文</label><input id="chapter-search" type="search" placeholder="例如 DebugParameterAccess、Ready、事务、GC"><button id="clear-search" type="button">清除</button></div>
@@ -57,20 +108,210 @@ details{margin:.8em 0;padding:8px 13px;border:1px solid var(--line);border-radiu
 
 <section class="chapter" id="start">
 <h2>从哪里开始</h2>
-<p class="lead">三个学习回合分别解决「找得到」「跟得通」「改得对」。第一次阅读优先走通一条链，随后用目录补齐全局。</p>
-<div class="table-wrap"><table><thead><tr><th>回合</th><th>建议顺序</th><th>学完能复述</th></tr></thead><tbody>
-<tr><td>第一次打开仓库</td><td>项目地图 → 启动与装配 → WPF 与 C# → 实时报警</td><td>一个进程从哪里启动，页面绑定到哪个对象，一条报警从哪里来。</td></tr>
-<tr><td>理解两套设备应用</td><td>PLC 采集 → 参数与权限 → FlyScan 状态机 → 运动控制</td><td>同一个页面如何绑定两套数据，谁决定状态，哪些动作属于哪一层。</td></tr>
-<tr><td>能维护、能面试</td><td>数据库 → 异步与 CLR → 验证 → 招聘要求 → 综合练习</td><td>能拿断点、持久化记录、复跑结果说明一次功能和一次优化。</td></tr>
-</tbody></table></div>
+<p class="lead">这份手册有两个学习目标。第一篇帮你理解 Prism 并完成一次页面接入。第二篇带你沿着 PLC HMI 和 FlyScan 的源码，找出这些机制在实际运行中发挥作用的位置。</p>
+<div class="explainer-grid">
+<article class="explainer"><h3>我想学会接入 Prism</h3><p>先弄清 WPF 与 Prism 的分工，再看容器、模块、Region、事件和命令。然后用“设备概览页”练习注册服务、绑定界面和菜单导航。</p><p><a href="#part-learn">开始第一篇</a> · <a href="#prism-adopt">直达接入练习</a></p></article>
+<article class="explainer"><h3>我想读懂这个项目</h3><p>先找到统一入口和两个产品的装配代码，再跟一次启动或导航。熟悉这条线后，继续读 PLC 采集和写入、FlyScan 时序，以及线程和存储。</p><p><a href="#part-project">开始第二篇</a> · <a href="#walkthrough">直达交互流程</a></p></article>
+</div>
+<p>每章末尾按学习顺序进入下一章。查某个类或方法时使用搜索框，排查故障、跑测试或准备面试时可直接打开<a href="#part-reference">附录</a>。</p>
 <h3>先打开哪几个窗口</h3>
 <p>在 Windows 的 Visual Studio 中打开 <code>PrismFramework.sln</code>，将 <code>Company.Shell</code> 设为启动项目。用 <code>FlyScanDebug</code> 构建飞拍仿真，练习 PLC 分支时使用本文的替身测试或 OPC UA 回环。常用窗口包括解决方案资源管理器、调用堆栈、监视、线程、输出，以及运行中的实时可视化树。</p>
 <pre><code>dotnet build .\PrismFramework.sln -c FlyScanDebug -m:1
 dotnet run --project tests/FlyScan.Workflow.Smoke/FlyScan.Workflow.Smoke.csproj</code></pre>
 <p>使用源码定位链接查看本机相邻项目文件。浏览器如果把 <code>.cs</code> 当作普通文件下载，可在 Visual Studio 用链接上的文件名定位，再根据行号和方法名跳转。后续修改源码时，方法名比快照行号稳定。</p>
 <p class="refs">源码入口 <a class="ref" href="../README.md" title="README.md · ## 入口"><code>README.md:5</code></a> <a class="ref" href="../Company.Shell/Program.cs" title="Company.Shell/Program.cs · private static int Main"><code>Program.cs:12</code></a> <a class="ref" href="../tests/FlyScan.Workflow.Smoke/Program.cs" title="tests/FlyScan.Workflow.Smoke/Program.cs · HistoryChecks.Verify"><code>Program.cs:295</code></a></p>
+<p class="chapter-end"><a href="#primer">下一章 · 先认识 C#、WPF 和 Prism</a></p>
+</section>
+<header class="part-banner" id="part-learn"><h2>第一篇 · 认识 Prism 并接入 WPF</h2><p>学完这篇，你能从 App、容器到 ViewModel 接起一个页面，并说明每一项 Prism 机制负责什么。</p></header>
+<section class="chapter" id="primer">
+<h2>先认识 C#、WPF 和 Prism</h2>
+<p class="lead">以“IO 页面上有一个指示灯”为例。先弄清每种技术在这件事里负责哪一步，再去看类名。</p>
+<div class="explainer-grid">
+<article class="explainer"><h3>C# 写出规则</h3><p>用类保存状态，用方法处理操作，用接口约定对象能做什么。例如，定义每个 IO 点要提供名称、数值和质量，PLC 与仿真分别实现这些约定。</p><p><code>bool?</code> 能保存 ON、OFF 和未知三种情况。设备断线时，界面可以直接呈现未知。</p></article>
+<article class="explainer"><h3>WPF 显示状态和接收操作</h3><p>XAML 是界面的结构描述。它写“这里放一个表格，表格的数据来自 <code>VisibleItems</code>”。WPF 创建控件，替你读取绑定的属性，并处理点击、布局和刷新。</p><p><code>DataContext</code> 告诉当前页面去哪个对象上找 <code>VisibleItems</code>。</p></article>
+<article class="explainer"><h3>Prism 负责把程序组装起来</h3><p>PLC HMI 启动时加载模块，模块告诉容器每个接口由哪个类提供。菜单点击后，Prism 的 Region 导航把对应视图放进窗口预留区域。FlyScan 也使用 Prism 装配对象，窗口里的页面切换主要由页签处理。</p><p>DryIoc 是这里的容器。读到 <code>Resolve&lt;MainWindow&gt;()</code>，可以理解为让容器按注册关系准备主窗口所需的对象。</p></article>
+<article class="explainer"><h3>MVVM 决定代码放在哪</h3><p><strong>View</strong> 画表格和按钮。<strong>ViewModel</strong> 提供表格行、按钮命令和提示。<strong>Model 与业务服务</strong> 表达设备快照、报警、工艺流程和业务规则。</p><p>ReactiveUI 在部分 PLC HMI 的 ViewModel 中提供属性通知和命令。读到 <code>ReactiveCommand</code>，先看执行方法与允许执行的条件。</p></article>
+</div>
+<h3>一个值怎么走到屏幕上</h3>
+<ol class="flow" aria-label="IO 指示灯数据从设备到窗口"><li>PLC 或仿真给出反馈</li><li class="arrow" aria-hidden="true">→</li><li>ViewModel 组织显示值</li><li class="arrow" aria-hidden="true">→</li><li>属性变更发出通知</li><li class="arrow" aria-hidden="true">→</li><li>WPF 绑定刷新控件</li></ol>
+<div class="table-wrap"><table><thead><tr><th>第一次读会碰到的写法</th><th>可以这样理解</th><th>到源码看什么</th></tr></thead><tbody>
+<tr><td><code>interface IIoMonitor</code></td><td>一份页面和数据提供方共同遵守的约定。</td><td>先读接口暴露哪些属性，再分别找 PLC 与 FlyScan 的实现。</td></tr>
+<tr><td><code>IReadOnlyList&lt;T&gt;</code>、<code>Where</code>、<code>Select</code></td><td>泛型写明列表里的对象类型，LINQ 用来筛选、转换和组织这些对象。</td><td>读报警列表时，注意哪一步取数据、哪一步改变显示形状、何时用 <code>ToArray</code> 得到结果。</td></tr>
+<tr><td><code>event</code>、<code>PropertyChanged</code>、<code>ICommand</code></td><td>属性通知告诉界面数据已变，命令连接按钮与可执行的动作。</td><td>列表变了却没刷新时看通知，点击没反应时看命令与授权条件。</td></tr>
+<tr><td><code>async</code>、<code>await</code>、<code>Task</code></td><td>Task 表示一项工作及其完成状态。遇到尚未完成的异步任务，<code>await</code> 让当前方法暂停，等结果后从这里继续。</td><td>先看有没有 <code>Task.Run</code>，再看完成后是否切回 UI。另见<a href="#threads">线程分工</a>。</td></tr>
+<tr><td><code>.NET</code>、<code>CLR</code>、<code>GC</code></td><td>.NET 提供运行时和类库。CLR 执行托管程序，GC 回收不再可达的托管对象。</td><td>项目的 <code>TargetFramework</code> 标注运行目标。报警刷新基准记录了对象分配及各代 GC 次数。</td></tr>
+</tbody></table></div>
+<details><summary>看一个最小的绑定示例</summary>
+<p>下面是教学示例。页面的数据对象有一个 <code>SignalText</code> 属性时，WPF 会读取它。之后如果对象发出这个属性的变更通知，界面就能重新读取。</p>
+<pre><code>&lt;TextBlock Text="{Binding SignalText}" /&gt;</code></pre>
+<pre><code>public string SignalText =&gt; Value switch
+{
+    true  =&gt; "ON",
+    false =&gt; "OFF",
+    null  =&gt; "未知"
+};</code></pre>
+<p>真实源码里也能用同一方法读表格。先看 <code>ItemsSource</code> 绑定了哪个集合，再看该集合的每一项提供哪些字段。</p>
+</details>
+<p class="refs">源码入口 <a class="ref" href="../Framework/Company.Hmi.Contracts/IoMonitor.cs" title="Framework/Company.Hmi.Contracts/IoMonitor.cs · interface IIoMonitor"><code>IoMonitor.cs:28</code></a> <a class="ref" href="../Framework/Company.Hmi.Presentation/RealtimeAlarmView.xaml" title="Framework/Company.Hmi.Presentation/RealtimeAlarmView.xaml · Binding VisibleItems"><code>RealtimeAlarmView.xaml:62</code></a> <a class="ref" href="../Applications/PlcHmi/Company.PlcHmi.Menu/ViewModels/MenuViewModel.cs" title="Applications/PlcHmi/Company.PlcHmi.Menu/ViewModels/MenuViewModel.cs · RegionManager.RequestNavigate"><code>MenuViewModel.cs:98</code></a> <a href="https://docs.prismlibrary.com/docs/current/modularity/">Prism 模块说明</a> <a href="https://learn.microsoft.com/en-us/dotnet/csharp/asynchronous-programming/">C# 异步编程</a></p>
+<p class="chapter-end"><a href="#prism-core">下一章 · Prism 的核心机制</a></p>
+</section>
+<section class="chapter" id="prism-core">
+<h2>Prism 的核心机制</h2>
+<p class="lead">从“我的页面由谁创建、放到哪里、通过什么接业务”这三个问题开始。项目引用 <code>Prism.DryIoc 9.0.537</code>，主窗口和页面依然由 WPF 显示，业务由本项目的 ViewModel、服务和设备层实现。</p>
+<h3>一张表记住各部分怎么配合</h3>
+<div class="table-wrap"><table><thead><tr><th>你要解决的问题</th><th>Prism 的入口</th><th>在这套软件里怎么用</th></tr></thead><tbody>
+<tr><td data-label="你要解决的问题">应用怎么启动、主窗口从哪里来？</td><td data-label="Prism 的入口"><code>PrismApplication</code>、<code>CreateShell</code></td><td data-label="在这套软件里怎么用">PLC HMI 和 FlyScan 各有自己的 <code>App</code>。两者经同一个 <code>Company.Shell</code> 的 C# 入口启动。</td></tr>
+<tr><td data-label="你要解决的问题">应用功能怎么拆块，什么时候加载？</td><td data-label="Prism 的入口"><code>IModule</code>、<code>IModuleCatalog</code>、<code>IModuleManager</code></td><td data-label="在这套软件里怎么用">PLC HMI 从 <code>Modules</code> 发现登录、准备和主业务等模块，部分模块按需加载。FlyScan 在 <code>App.RegisterTypes</code> 直接装配本机仿真对象。</td></tr>
+<tr><td data-label="你要解决的问题">接口由谁实现，实例怎么创建？</td><td data-label="Prism 的入口"><code>IContainerRegistry</code>、<code>IContainerProvider</code>、DryIoc</td><td data-label="在这套软件里怎么用">装配模块注册角色策略、仓库、后台服务。ViewModel 的构造函数接收 <code>IPlcRuntime</code> 等依赖。</td></tr>
+<tr><td data-label="你要解决的问题">点菜单后，窗口要在哪里显示哪个视图？</td><td data-label="Prism 的入口"><code>RegionManager</code>、<code>RequestNavigate</code></td><td data-label="在这套软件里怎么用">登录、初始化、主面板用 <code>MainRegion</code>。主面板的页面切换使用 <code>WorkspaceRegion</code>，菜单有自己的 <code>MenuRegion</code>。</td></tr>
+<tr><td data-label="你要解决的问题">View 怎么拿到 ViewModel，按钮怎么执行？</td><td data-label="Prism 的入口"><code>ViewModelLocator</code>、<code>BindableBase</code>、<code>DelegateCommand</code></td><td data-label="在这套软件里怎么用">登录等窗口可按名称装配 <code>DataContext</code>，共用控件的页面也能由宿主显式绑定。PLC HMI 的菜单中还能看到 ReactiveUI 的 <code>ReactiveCommand</code>。</td></tr>
+<tr><td data-label="你要解决的问题">如何通知另一个模块？</td><td data-label="Prism 的入口"><code>IEventAggregator</code>、<code>PubSubEvent&lt;T&gt;</code></td><td data-label="在这套软件里怎么用">登录模块发布 <code>LoginSuccessEvent</code>，主窗口收到后进入初始化页面。</td></tr>
+<tr><td data-label="你要解决的问题">如何打开弹窗并取回结果？</td><td data-label="Prism 的入口"><code>RegisterDialog</code>、<code>IDialogService</code>、<code>IDialogAware</code></td><td data-label="在这套软件里怎么用">账户管理、修改密码和系统设置使用对话框，其中账号操作权限由应用继续判断。</td></tr>
+</tbody></table></div>
+<p class="refs">源码定位 <a class="ref" href="../Company.Shell/Company.Shell.csproj" title="Company.Shell/Company.Shell.csproj · Prism.DryIoc"><code>Company.Shell.csproj:45</code></a> <a class="ref" href="../Applications/PlcHmi/Company.PlcHmi.Shell/App.xaml.cs" title="Applications/PlcHmi/Company.PlcHmi.Shell/App.xaml.cs · return new DirectoryModuleCatalog"><code>App.xaml.cs:289</code></a> <a class="ref" href="../Applications/FlyScan/Company.FlyScan.Shell/App.xaml.cs" title="Applications/FlyScan/Company.FlyScan.Shell/App.xaml.cs · protected override void RegisterTypes"><code>App.xaml.cs:13</code></a> <a class="ref" href="../Applications/PlcHmi/Company.PlcHmi.Shared/Prism/RegionNames.cs" title="Applications/PlcHmi/Company.PlcHmi.Shared/Prism/RegionNames.cs · class RegionNames"><code>RegionNames.cs:4</code></a></p>
+<h3>模块与 DI · 先注册，再创建，再开始业务</h3>
+<ol class="flow" aria-label="模块发现与加载顺序"><li>模块目录发现组件</li><li class="arrow" aria-hidden="true">→</li><li>LoadModule 加载目标及依赖</li><li class="arrow" aria-hidden="true">→</li><li>RegisterTypes 记录构造规则</li><li class="arrow" aria-hidden="true">→</li><li>OnInitialized 完成模块初始化</li></ol>
+<div class="explainer-grid">
+<article class="explainer"><h4>区分三种启动时机</h4><p><code>OnDemand = true</code> 表示按需加载，<code>ModuleDependency</code> 表达模块先后关系。模块初始化后，实际启动 PLC 和恢复历史仍由应用的 <code>ApplicationLifecycle</code> 编排。注册、模块初始化、后台运行分别有各自的断点。</p></article>
+<article class="explainer"><h4>区分三个注册入口</h4><p><code>Register</code> 供容器为解析创建实例，<code>RegisterSingleton</code> 让容器复用实例，<code>RegisterInstance</code> 注册已创建的对象。账户授权策略通过接口注册，FlyScan 历史对象是应用创建后再注册的实例。</p></article>
+</div>
+<p><code>Framework/Company.Desktop</code> 的 <code>PrismProvider</code> 是这个项目提供的静态访问入口。看见 <code>PrismProvider.RegionManager</code> 时，可以回到其构造函数，看到区域、模块、事件和对话框服务都由 Prism 容器提供。新业务类可以像设备监控 ViewModel 那样直接从构造函数声明需要的接口。</p>
+<p class="refs">源码定位 <a class="ref" href="../Applications/PlcHmi/Company.PlcHmi.Main/PlcHmiMainModule.cs" title="Applications/PlcHmi/Company.PlcHmi.Main/PlcHmiMainModule.cs · OnDemand = true"><code>PlcHmiMainModule.cs:21</code></a> <a class="ref" href="../Applications/PlcHmi/Company.PlcHmi.Composition/Platform/PlcHmiPlatformModule.cs" title="Applications/PlcHmi/Company.PlcHmi.Composition/Platform/PlcHmiPlatformModule.cs · RegisterSingleton&lt;IUserAuthorizationPolicy"><code>PlcHmiPlatformModule.cs:20</code></a> <a class="ref" href="../Framework/Company.Desktop/Ioc/PrismProvider.cs" title="Framework/Company.Desktop/Ioc/PrismProvider.cs · public PrismProvider("><code>PrismProvider.cs:20</code></a> <a class="ref" href="../Applications/PlcHmi/Company.PlcHmi.Startup/ViewModels/InitializeViewModel.cs" title="Applications/PlcHmi/Company.PlcHmi.Startup/ViewModels/InitializeViewModel.cs · await _lifecycle.StartAsync"><code>InitializeViewModel.cs:70</code></a></p>
+<h3>Region、视图名称和页面生命期</h3>
+<p>Region 是给内容预留的位置，视图名称是容器用于查找目标的键。可以先用“把活动视图换成另一页”来理解导航，再顺着应用代码看进入、离开和复用。<a href="#prism-project">第二篇的项目用例</a>展示了工作区的真实运行方式。</p>
+<h3>绑定、命令、事件和对话框怎么选</h3>
+<div class="table-wrap"><table><thead><tr><th>情况</th><th>选用入口</th><th>用本项目的现象记住它</th></tr></thead><tbody>
+<tr><td data-label="情况">页面读不到 ViewModel</td><td data-label="选用入口"><code>ViewModelLocator</code> 或显式 <code>DataContext</code></td><td data-label="用本项目的现象记住它"><code>AutoWireViewModel</code> 可以按相应的 <code>.Views</code>、<code>.ViewModels</code> 命名约定装配。共用视图由宿主绑定各产品自己的模型时，从绑定处追实际对象。</td></tr>
+<tr><td data-label="情况">一个属性改了，控件需要刷新</td><td data-label="选用入口"><code>BindableBase.SetProperty</code> 或 ReactiveUI 属性通知</td><td data-label="用本项目的现象记住它">修改密码页面用 <code>SetProperty</code> 发出属性变更通知。进一步检查关联属性是否也需要通知。</td></tr>
+<tr><td data-label="情况">按钮执行 ViewModel 方法</td><td data-label="选用入口"><code>DelegateCommand</code> 或 <code>ReactiveCommand</code></td><td data-label="用本项目的现象记住它">FlyScan 报警查询用 <code>DelegateCommand(Query)</code>。命令依赖的条件变化时，使用项目选用的命令机制通知按钮重新判断可用性。设备操作的真正授权仍由应用服务复核。</td></tr>
+<tr><td data-label="情况">多个模块关心同一个事实</td><td data-label="选用入口"><code>EventAggregator</code> 发布与订阅</td><td data-label="用本项目的现象记住它"><code>LoginSuccessEvent</code> 携带已登录用户；主窗口订阅时明确用 <code>ThreadOption.UIThread</code>。短生命周期订阅应在不再需要时清理。需要返回结果的接口调用仍从服务直接跟。</td></tr>
+<tr><td data-label="情况">临时弹出一个编辑或确认窗口</td><td data-label="选用入口"><code>IDialogService</code></td><td data-label="用本项目的现象记住它">先注册对话框，再按名字打开。打开参数交给 <code>OnDialogOpened</code>，关闭条件看 <code>CanCloseDialog</code>，Prism 9 下经 <code>DialogCloseListener</code> 请求关闭并返回结果。</td></tr>
+</tbody></table></div>
+<p class="refs">源码定位 <a class="ref" href="../Applications/PlcHmi/Company.PlcHmi.Login/Views/ChangePasswordView.xaml" title="Applications/PlcHmi/Company.PlcHmi.Login/Views/ChangePasswordView.xaml · AutoWireViewModel"><code>ChangePasswordView.xaml:4</code></a> <a class="ref" href="../Applications/FlyScan/Company.FlyScan.Shell/FlyHistoryPages.cs" title="Applications/FlyScan/Company.FlyScan.Shell/FlyHistoryPages.cs · new DelegateCommand(Query)"><code>FlyHistoryPages.cs:25</code></a> <a class="ref" href="../Framework/Company.Platform.Shared/Events/LoginSuccessEvent.cs" title="Framework/Company.Platform.Shared/Events/LoginSuccessEvent.cs · class LoginSuccessEvent"><code>LoginSuccessEvent.cs:15</code></a> <a class="ref" href="../Applications/PlcHmi/Company.PlcHmi.Shell/ViewModels/MainWindowViewModel.cs" title="Applications/PlcHmi/Company.PlcHmi.Shell/ViewModels/MainWindowViewModel.cs · Subscribe(OnLogined, ThreadOption.UIThread)"><code>MainWindowViewModel.cs:53</code></a> <a class="ref" href="../Applications/PlcHmi/Company.PlcHmi.Login/PlcHmiLoginModule.cs" title="Applications/PlcHmi/Company.PlcHmi.Login/PlcHmiLoginModule.cs · RegisterDialog&lt;UserManagementView&gt;"><code>PlcHmiLoginModule.cs:27</code></a> <a class="ref" href="../Framework/Company.Desktop/Ioc/DialogViewModelBase.cs" title="Framework/Company.Desktop/Ioc/DialogViewModelBase.cs · DialogCloseListener RequestClose"><code>DialogViewModelBase.cs:47</code></a></p>
+<p class="refs">原理参考 <a href="https://docs.prismlibrary.com/docs/9.0/platforms/wpf/getting-started/">Prism 9.0 · WPF 入门</a> <a href="https://docs.prismlibrary.com/docs/9.0/mvvm/viewmodel-locator/">ViewModelLocator</a> <a href="https://docs.prismlibrary.com/docs/current/navigation/regions/basic-region-navigation/">Region 导航</a> <a href="https://docs.prismlibrary.com/docs/current/event-aggregator/">事件聚合器</a> <a href="https://docs.prismlibrary.com/docs/9.0/dialogs/dialog-aware/">IDialogAware</a></p>
+<p class="chapter-end"><a href="#wpf">下一章 · 用 MVVM 连接 WPF 和 C#</a></p>
+</section>
+<section class="chapter" id="wpf">
+<h2>用 MVVM 连接 WPF 和 C#</h2>
+<div class="table-wrap"><table><thead><tr><th>概念</th><th>本项目里的例子</th><th>阅读重点</th></tr></thead><tbody>
+<tr><td>View / ViewModel / Model</td><td><code>RealtimeAlarmView.xaml</code> 展示列表，<code>FlyAlarmPage</code> 组织显示行，<code>ScanAlarm</code> 保存报警事实</td><td>按钮和表格是怎样找到数据的，格式化和业务计算分别由谁做。</td></tr>
+<tr><td>DataContext / Binding</td><td>实时表的 <code>ItemsSource="{Binding VisibleItems}"</code></td><td>绑定源通常是当前 <code>DataContext</code>，目标是控件属性；列表列再从每一行对象读字段。</td></tr>
+<tr><td>属性通知与集合</td><td><code>HistoryPage</code> 发出 <code>PropertyChanged</code>，历史页替换一批显示行</td><td>替换集合引用依赖属性通知；对原集合增删可由 <code>ObservableCollection&lt;T&gt;</code> 通知；行内属性变化还要看该行的通知。</td></tr>
+<tr><td>ICommand 与输入事件</td><td><code>DelegateCommand</code>、<code>ReactiveCommand</code>、<code>ModePressButton</code></td><td>普通点击可绑命令，按住需要分别表达按下、松开和捕获丢失。命令可执行状态负责界面反馈，发送层负责操作复核。</td></tr>
+<tr><td>资源、样式、模板</td><td><code>ComponentPageStyles.xaml</code> 和页面动态/静态资源、<code>DataTemplate</code> 与 <code>ControlTemplate</code></td><td>Style 为属性提供一组规则，DataTemplate 组织数据长相，ControlTemplate 描述控件的视觉结构。WPF 动画通常经 Storyboard 驱动属性，本仓库代码中最直接的学习证据集中在样式和模板。</td></tr>
+<tr><td>依赖属性和路由事件</td><td><code>ModeStateDiagram.Kind</code>、<code>Feedback</code>，按持行为的 <code>UseHold</code> 及 <code>Pressed/Released</code></td><td>WPF 属性系统解析绑定、样式等值来源。附加属性让普通 Button 使用行为；路由事件可以沿元素树冒泡。</td></tr>
+</tbody></table></div>
+<p class="refs">源码定位 <a class="ref" href="../Framework/Company.Hmi.Presentation/RealtimeAlarmView.xaml" title="Framework/Company.Hmi.Presentation/RealtimeAlarmView.xaml · Binding VisibleItems"><code>RealtimeAlarmView.xaml:62</code></a> <a class="ref" href="../Applications/FlyScan/Company.FlyScan.Shell/FlyHistoryPages.cs" title="Applications/FlyScan/Company.FlyScan.Shell/FlyHistoryPages.cs · class HistoryPage"><code>FlyHistoryPages.cs:10</code></a> <a class="ref" href="../Framework/Company.Hmi.Presentation/ComponentPageStyles.xaml" title="Framework/Company.Hmi.Presentation/ComponentPageStyles.xaml · ResourceDictionary"><code>ComponentPageStyles.xaml:1</code></a> <a class="ref" href="../Framework/Company.Hmi.Presentation/ModeStateDiagram.cs" title="Framework/Company.Hmi.Presentation/ModeStateDiagram.cs · KindProperty"><code>ModeStateDiagram.cs:21</code></a> <a class="ref" href="../Framework/Company.Hmi.Presentation/ModePressButton.cs" title="Framework/Company.Hmi.Presentation/ModePressButton.cs · UseHoldProperty"><code>ModePressButton.cs:26</code></a> <a href="https://learn.microsoft.com/en-us/dotnet/desktop-wpf/data/data-binding-overview">Microsoft Learn · 绑定</a> <a href="https://learn.microsoft.com/dotnet/desktop/wpf/advanced/dependency-properties-overview">Microsoft Learn · 依赖属性</a></p>
+<h3>在源码里认识泛型、LINQ、委托和事件</h3>
+<ul>
+<li><strong>泛型</strong>　<code>IReadOnlyList&lt;ScanAlarm&gt;</code> 表达调用方按报警记录读取集合，接口约束与底层集合的可变性要分别判断。<code>SimulationJson.Read&lt;T&gt;</code> 用类型参数复用反序列化流程；<code>Resolve&lt;MainWindow&gt;</code> 把容器解析目标表达为编译期类型。</li>
+<li><strong>LINQ</strong>　<code>Where</code> 筛选、<code>Select</code> 投影、<code>GroupBy</code> 分组、<code>ToArray</code> 执行并物化。FlyScan 分析页按报警码归组，再算次数与有效时长。SqlSugar 的 <code>Queryable&lt;T&gt;</code> 在数据库端执行的表达式要单独看，<code>Enumerable</code> 的操作则运行在本机对象上。</li>
+<li><strong>委托和事件</strong>　<code>Action&lt;AlarmHistorySelection&gt;</code> 把「从分析页转到历史页」交给宿主处理。<code>PropertyChanged</code> 表达变更已发生，订阅者的生存期越长，越要检查何时解绑。WPF 路由事件、普通 C# 事件、Prism 的 <code>PubSubEvent&lt;T&gt;</code> 可以从声明类型辨认。</li>
+<li><strong>记录、模式匹配、可空</strong>　用 <code>record</code> 表达快照和按值比较的结果，<code>with</code> 复制外层对象。引用成员可能共享，实时报警会复制已确认片段给界面。<code>bool?</code> 能表示未知，判定条件里 <code>true</code>、<code>false</code> 和 <code>null</code> 各有含义。</li>
+</ul>
+<p class="refs">源码定位 <a class="ref" href="../Applications/FlyScan/Company.FlyScan.Runtime/FlyScanRecipe.cs" title="Applications/FlyScan/Company.FlyScan.Runtime/FlyScanRecipe.cs · internal static T Read&lt;T&gt;"><code>FlyScanRecipe.cs:89</code></a> <a class="ref" href="../Applications/FlyScan/Company.FlyScan.Shell/FlyHistoryPages.cs" title="Applications/FlyScan/Company.FlyScan.Shell/FlyHistoryPages.cs · GroupBy"><code>FlyHistoryPages.cs:204</code></a> <a class="ref" href="../Applications/FlyScan/Company.FlyScan.Shell/FlyHistoryPages.cs" title="Applications/FlyScan/Company.FlyScan.Shell/FlyHistoryPages.cs · Action&lt;AlarmHistorySelection&gt;"><code>FlyHistoryPages.cs:100</code></a> <a class="ref" href="../Applications/FlyScan/Company.FlyScan.Runtime/FlyScanHistory.cs" title="Applications/FlyScan/Company.FlyScan.Runtime/FlyScanHistory.cs · run.KnownSpans.ToArray()"><code>FlyScanHistory.cs:199</code></a> <a class="ref" href="../Framework/Company.Hmi.Presentation/BusinessPage.cs" title="Framework/Company.Hmi.Presentation/BusinessPage.cs · PageVisibilityChanged"><code>BusinessPage.cs:18</code></a></p>
+<h3>WPF 性能怎么查</h3>
+<p>DataGrid 可启用行/列虚拟化并回收容器，减少长列表需要创建的可视对象。表的滚动容器、布局约束和模板复杂度决定虚拟化能否有效工作。数据虚拟化则要看分页、按需读取或限量查询。优化时先分开观察查询、绑定、布局和渲染，再用可视化树核对元素个数。当前离线基准包含绑定与离屏布局，GPU 渲染和实机帧时间是另外的观测目标。</p>
+<details><summary>自测 · 为什么给表格开虚拟化后，实时报警仍可能卡？</summary><p>虚拟化影响 WPF 容器数量，旧实现每次刷新仍要从 SQLite 重建全部报警与缺口，查询线程的时间和内存分配依旧存在。两个层次分别测量。</p></details>
+<p class="chapter-end"><a href="#prism-adopt">下一章 · 接入 Prism · 从宿主到第一个页面</a></p>
+</section>
+<section class="chapter" id="prism-adopt">
+<h2>接入 Prism · 从宿主到第一个页面</h2>
+<p class="lead">新做一个 WPF 软件时先把下面这条最小链走通。加入本项目的新功能时，可以直接复用已经存在的 <code>Company.Shell</code> 和业务模块。</p>
+<ol class="flow" aria-label="WPF 软件接入 Prism 的顺序"><li>引用 Prism 与容器</li><li class="arrow" aria-hidden="true">→</li><li>App 创建主窗口</li><li class="arrow" aria-hidden="true">→</li><li>注册服务与页面</li><li class="arrow" aria-hidden="true">→</li><li>绑定界面并请求导航</li></ol>
+<ol>
+<li><strong>先启动宿主。</strong> 在现有 WPF 应用中引用兼容项目目标框架的 Prism WPF 容器包。<code>App.xaml</code> 和 <code>App.xaml.cs</code> 对应同一个 <code>PrismApplication</code>，由 <code>CreateShell</code> 创建主窗口。用断点确认只创建预期的窗口。</li>
+<li><strong>安排创建关系。</strong> 在 <code>RegisterTypes</code> 注册接口的实现和视图，业务 ViewModel 的构造函数声明需要的接口。第一版可以集中注册；功能需要独立装配时，再迁到实现 <code>IModule</code> 的模块。</li>
+<li><strong>让视图进得去。</strong> 在窗口中预留一个具名 Region，为目标 View 登记导航名，调用 <code>RequestNavigate</code> 时分别传入 Region 名和视图名。用 <code>ViewModelLocator</code> 或显式设置 <code>DataContext</code>，然后绑定显示属性和命令。</li>
+<li><strong>按一条运行链确认接好了。</strong> 从入口启动，在模块注册、导航回调和 ViewModel 命令中依次下断点。看到一个真实的显示属性变化，再考虑引入事件、对话框和更多模块。</li>
+</ol>
+<p class="refs">项目里的对应代码 <a class="ref" href="../Applications/FlyScan/Company.FlyScan.Shell/App.xaml" title="Applications/FlyScan/Company.FlyScan.Shell/App.xaml · &lt;prism:PrismApplication"><code>App.xaml:1</code></a> <a class="ref" href="../Applications/FlyScan/Company.FlyScan.Shell/App.xaml.cs" title="Applications/FlyScan/Company.FlyScan.Shell/App.xaml.cs · protected override Window CreateShell()"><code>App.xaml.cs:25</code></a> <a class="ref" href="../Applications/PlcHmi/Company.PlcHmi.Main/Views/MainView.xaml" title="Applications/PlcHmi/Company.PlcHmi.Main/Views/MainView.xaml · share:RegionNames.WorkspaceRegion"><code>MainView.xaml:51</code></a></p>
+<p>下面用已经编译验证过的设备概览页演练接入。练习沿用 PLC HMI 的命名注册、菜单和访问规则，可以从界面一路跟到现有设备快照。</p>
+<h3>动手例子 · 给 PLC HMI 加一个只读设备概览页</h3>
+<p>下面的示例只读取已经存在的设备状态快照，显示当前快照的设备数。它示范如何把 View、ViewModel、注册、导航和权限接起来。需要迁移到 FlyScan 时，可保留适用的展示结构，改用飞拍 Shell 的页签和仿真数据来源。</p>
+<details open><summary>1. 定义控制显示的 ViewModel</summary>
+<p>在 <code>Company.PlcHmi.Main/ViewModels</code> 新建 <code>DeviceOverviewViewModel.cs</code>。容器注入现有的 <code>IPlcRuntime</code>。进入页面时和点击刷新时读取同一份内存快照。</p>
+<pre><code data-sample="view-model">using Company.PlcHmi.Shared.PLC.Runtime;
+using Prism.Commands;
+using Prism.Mvvm;
+using Prism.Navigation.Regions;
+
+namespace Company.PlcHmi.Main.ViewModels;
+
+public sealed class DeviceOverviewViewModel : BindableBase, INavigationAware
+{
+    private readonly IPlcRuntime _runtime;
+    private int _deviceCount;
+
+    public DeviceOverviewViewModel(IPlcRuntime runtime)
+    {
+        _runtime = runtime;
+        RefreshCommand = new DelegateCommand(Refresh);
+    }
+
+    public int DeviceCount
+    {
+        get =&gt; _deviceCount;
+        private set =&gt; SetProperty(ref _deviceCount, value);
+    }
+
+    public DelegateCommand RefreshCommand { get; }
+
+    public void OnNavigatedTo(NavigationContext context) =&gt; Refresh();
+
+    public bool IsNavigationTarget(NavigationContext context) =&gt; true;
+
+    public void OnNavigatedFrom(NavigationContext context) { }
+
+    private void Refresh() =&gt; DeviceCount = _runtime.Status.Devices.Count;
+}</code></pre>
+</details>
+<details><summary>2. 用 XAML 把属性和命令接到界面</summary>
+<p>在同一项目的 <code>Views</code> 中新增 UserControl <code>DeviceOverviewView</code>，保留模板生成的构造函数和 <code>InitializeComponent()</code>。ViewModelLocator 通过名称关系找到上一步的类。</p>
+<pre><code data-sample="view-xaml">&lt;UserControl x:Class="Company.PlcHmi.Main.Views.DeviceOverviewView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:prism="http://prismlibrary.com/"
+             prism:ViewModelLocator.AutoWireViewModel="True"&gt;
+    &lt;StackPanel Margin="16"&gt;
+        &lt;TextBlock Text="当前快照设备数" /&gt;
+        &lt;TextBlock Text="{Binding DeviceCount}" /&gt;
+        &lt;Button Content="刷新" Command="{Binding RefreshCommand}"
+                HorizontalAlignment="Left" Margin="0,8,0,0" /&gt;
+    &lt;/StackPanel&gt;
+&lt;/UserControl&gt;</code></pre>
+</details>
+<details><summary>3. 把页面注册到现有模块与访问策略</summary>
+<p>在 <code>ViewNames</code> 添加稳定的名称。在 <code>PlcHmiMainModule.RegisterTypes</code> 随现有业务页注册。按页面的实际访问要求更新 <code>UserAccessRules.CanOpenPage</code>。这个只读教学页可以与现有设备监控共用查看规则。</p>
+<pre><code data-sample="view-name">public const string DeviceOverviewView = "DeviceOverviewView";</code></pre>
+<pre><code data-sample="module">containerRegistry.RegisterSingleton&lt;DeviceOverviewViewModel&gt;();
+containerRegistry.RegisterSingleton(
+    typeof(object), typeof(DeviceOverviewView), ViewNames.DeviceOverviewView);</code></pre>
+<pre><code data-sample="access">// 在 CanOpenPage 的 switch 表达式的现有公开查看规则中加入
+ViewNames.DeviceOverviewView or</code></pre>
+<p>第三段放进现有公开页面的模式分支，紧接着原有页面名称。<code>ResidentWorkspaceHost</code> 显示页面前还会按实际视图类型名复核，所以新名称应与视图类型保持一致。</p>
+</details>
+<details><summary>4. 复用菜单导航，再验证整条链</summary>
+<p>在 <code>MenuViewModel</code> 声明 <code>DeviceOverviewCommand</code>，按设备监控菜单的写法在构造函数初始化，再在菜单 XAML 放一个绑定到该命令的按钮。继续复用现有 <code>Navigate</code>，沿用访问复核及异常日志。</p>
+<p>在类中声明命令属性。</p>
+<pre><code data-sample="menu-property">public ICommand DeviceOverviewCommand { get; }</code></pre>
+<p>在构造函数中注册命令。</p>
+<pre><code data-sample="menu-ctor">DeviceOverviewCommand = ReactiveCommand.Create(
+    () =&gt; Navigate(ViewNames.DeviceOverviewView), outputScheduler: scheduler);</code></pre>
+<pre><code data-sample="menu-button">&lt;Button Content="设备概览" Command="{Binding DeviceOverviewCommand}" /&gt;</code></pre>
+<ul><li>菜单点击后，先在 <code>Navigate</code> 看目标名称和访问结果，再在导航结果回调看异常。</li><li>页面出来但数量不显示时，在实时可视化树检查 <code>DataContext</code>，并在输出窗口查看 <code>Binding</code> 错误。</li><li>从概览切去其他页面再切回，确认 <code>OnNavigatedTo</code> 再读一次快照。点击刷新，确认 <code>RefreshCommand</code> 读取的是现有状态。</li></ul>
+</details>
+<p class="refs">现有对照代码 <a class="ref" href="../Applications/PlcHmi/Company.PlcHmi.Main/ViewModels/DeviceMonitorViewModel.cs" title="Applications/PlcHmi/Company.PlcHmi.Main/ViewModels/DeviceMonitorViewModel.cs · var devices = _runtime.Status.Devices"><code>DeviceMonitorViewModel.cs:35</code></a> <a class="ref" href="../Applications/PlcHmi/Company.PlcHmi.Main/PlcHmiMainModule.cs" title="Applications/PlcHmi/Company.PlcHmi.Main/PlcHmiMainModule.cs · RegisterSingleton&lt;DeviceMonitorViewModel&gt;"><code>PlcHmiMainModule.cs:38</code></a> <a class="ref" href="../Applications/PlcHmi/Company.PlcHmi.Shared/Login/UserAccessRules.cs" title="Applications/PlcHmi/Company.PlcHmi.Shared/Login/UserAccessRules.cs · public static bool CanOpenPage"><code>UserAccessRules.cs:16</code></a> <a class="ref" href="../Applications/PlcHmi/Company.PlcHmi.Menu/ViewModels/MenuViewModel.cs" title="Applications/PlcHmi/Company.PlcHmi.Menu/ViewModels/MenuViewModel.cs · DeviceMonitorCommand = ReactiveCommand.Create"><code>MenuViewModel.cs:78</code></a></p>
+<h3>遇到问题时先查哪一层</h3>
+<div class="table-wrap"><table><thead><tr><th>现象</th><th>核查顺序</th></tr></thead><tbody>
+<tr><td data-label="现象">找不到模块、打开阶段就报错</td><td data-label="核查顺序">检查宿主的 <code>Modules</code> 目录、模块名称、加载方式和 <code>ModuleDependency</code>。</td></tr>
+<tr><td data-label="现象">容器无法创建窗口或 ViewModel</td><td data-label="核查顺序">从异常的构造参数向上找缺失注册，检查选中的产品和注册发生的时机。</td></tr>
+<tr><td data-label="现象">菜单能点，但没进入页面</td><td data-label="核查顺序">检查名称、Region 是否已经存在、页面权限、导航结果中的异常。</td></tr>
+<tr><td data-label="现象">页面可见，但按钮或数据显示不正常</td><td data-label="核查顺序">查 <code>DataContext</code>、绑定路径、<code>CanExecute</code>、属性通知，再看订阅线程、导航与实际可见性。</td></tr>
+</tbody></table></div>
 <p class="chapter-end"><a href="#map">下一章 · 项目地图与依赖方向</a></p>
 </section>
+<header class="part-banner" id="part-project"><h2>第二篇 · 看 Prism 在项目中怎么用</h2><p>从启动和页面导航开始，随后追踪 PLC HMI 和 FlyScan 各自的业务路径，再看线程、数据库与性能。</p></header>
 <section class="chapter" id="map">
 <h2>项目地图与依赖方向</h2>
 <p>解决方案像一本索引，<code>.sln</code> 让 IDE 找到项目，<code>.csproj</code> 决定编译哪些源码、引用哪些项目和 NuGet 包。实际可运行的软件是宿主产物 <code>.exe</code>，运行时还加载项目依赖和选中的模块 DLL。</p>
@@ -102,10 +343,10 @@ dotnet run --project tests/FlyScan.Workflow.Smoke/FlyScan.Workflow.Smoke.csproj<
 </details>
 <div class="callout lab"><p><strong>练习</strong> 在解决方案资源管理器打开 <code>Company.Hmi.Presentation</code> 和 <code>Company.FlyScan.Runtime</code> 的项目引用，画出各自的直接依赖。新机器的工艺流程应放在哪？</p></div>
 <details><summary>参考答案</summary><p>流程放在所属应用的运行层。共享页面通过契约展示状态，通用运动库执行可复用的运动能力。产品装配把实现接上，硬件项目无需引用具体工艺。</p></details>
-<p class="chapter-end"><a href="#startup">下一章 · 启动、Prism、依赖注入与退出</a></p>
+<p class="chapter-end"><a href="#startup">下一章 · 两个产品如何启动和退出</a></p>
 </section>
 <section class="chapter" id="startup">
-<h2>启动、Prism、依赖注入与退出</h2>
+<h2>两个产品如何启动和退出</h2>
 <h3>一路跟到主窗口</h3>
 <ol>
 <li><code>Company.Shell/Directory.Build.props</code> 和 <code>Company.Shell.csproj</code> 根据解决方案配置共同选出产品。<code>Company.Shell/Program.cs</code> 通过编译条件选择对应 <code>App</code>，以 STA 启动 WPF，加载资源并调用 <code>Run()</code>。源码目录中的两个 Shell 随选定产品被宿主包含，输出分别是 <code>Company.PlcHmi.Shell.exe</code> 与 <code>Company.FlyScan.Shell.exe</code>。</li>
@@ -128,65 +369,76 @@ dotnet run --project tests/FlyScan.Workflow.Smoke/FlyScan.Workflow.Smoke.csproj<
 <p class="refs">源码定位 <a class="ref" href="../Framework/Company.Core/Runtime/ApplicationLifecycle.cs" title="Framework/Company.Core/Runtime/ApplicationLifecycle.cs · public Task StartAsync"><code>ApplicationLifecycle.cs:35</code></a> <a class="ref" href="../Framework/Company.Core/Runtime/ApplicationLifecycle.cs" title="Framework/Company.Core/Runtime/ApplicationLifecycle.cs · public Task StopAsync"><code>ApplicationLifecycle.cs:88</code></a> <a class="ref" href="../Applications/PlcHmi/Company.PlcHmi.Plc/Lifecycle/PlcLifecycleAdapter.cs" title="Applications/PlcHmi/Company.PlcHmi.Plc/Lifecycle/PlcLifecycleAdapter.cs · lifecycle.Register"><code>PlcLifecycleAdapter.cs:20</code></a> <a class="ref" href="../Applications/PlcHmi/Company.PlcHmi.Main/Services/History/PlcHistoryLifecycle.cs" title="Applications/PlcHmi/Company.PlcHmi.Main/Services/History/PlcHistoryLifecycle.cs · lifecycle.Register"><code>PlcHistoryLifecycle.cs:49</code></a> <a class="ref" href="../Applications/FlyScan/Company.FlyScan.Shell/MainWindow.xaml.cs" title="Applications/FlyScan/Company.FlyScan.Shell/MainWindow.xaml.cs · _axisRefresh.Stop"><code>MainWindow.xaml.cs:44</code></a> <a class="ref" href="../LifecycleOperations.md" title="LifecycleOperations.md · ## 窗口"><code>LifecycleOperations.md:32</code></a></p>
 <div class="callout lab"><p><strong>断点练习</strong> 用 <code>FlyScanDebug</code> 在 <code>Program.Main</code>、FlyScan <code>App.RegisterTypes</code> 和 <code>MainWindow</code> 构造函数断下。记录 <code>history</code> 的运行时类型和同一个窗口内使用它的页面。</p></div>
 <details><summary>参考答案</summary><p>构建阶段决定加载 FlyScan 的 <code>App</code>。应用注册 <code>FlyScanHistory</code> 实例，窗口把它交给实时、历史、分析、生产和操作日志的页面模型。为 PLC 增加一种实现时，先查接口注册，再跟实例的调用栈。</p></details>
-<p class="chapter-end"><a href="#wpf">下一章 · 从 C# 基础过渡到 WPF 和 MVVM</a></p>
+<p class="chapter-end"><a href="#prism-project">下一章 · Prism 在项目中的实际落点</a></p>
 </section>
-<section class="chapter" id="wpf">
-<h2>从 C# 基础过渡到 WPF 和 MVVM</h2>
-<div class="table-wrap"><table><thead><tr><th>概念</th><th>本项目里的例子</th><th>阅读重点</th></tr></thead><tbody>
-<tr><td>View / ViewModel / Model</td><td><code>RealtimeAlarmView.xaml</code> 展示列表，<code>FlyAlarmPage</code> 组织显示行，<code>ScanAlarm</code> 保存报警事实</td><td>按钮和表格是怎样找到数据的，格式化和业务计算分别由谁做。</td></tr>
-<tr><td>DataContext / Binding</td><td>实时表的 <code>ItemsSource="{Binding VisibleItems}"</code></td><td>绑定源通常是当前 <code>DataContext</code>，目标是控件属性；列表列再从每一行对象读字段。</td></tr>
-<tr><td>属性通知与集合</td><td><code>HistoryPage</code> 发出 <code>PropertyChanged</code>，历史页替换一批显示行</td><td>替换集合引用依赖属性通知；对原集合增删可由 <code>ObservableCollection&lt;T&gt;</code> 通知；行内属性变化还要看该行的通知。</td></tr>
-<tr><td>ICommand 与输入事件</td><td><code>DelegateCommand</code>、<code>ReactiveCommand</code>、<code>ModePressButton</code></td><td>普通点击可绑命令，按住需要分别表达按下、松开和捕获丢失。命令可执行状态负责界面反馈，发送层负责操作复核。</td></tr>
-<tr><td>资源、样式、模板</td><td><code>ComponentPageStyles.xaml</code> 和页面动态/静态资源、<code>DataTemplate</code> 与 <code>ControlTemplate</code></td><td>Style 为属性提供一组规则，DataTemplate 组织数据长相，ControlTemplate 描述控件的视觉结构。WPF 动画通常经 Storyboard 驱动属性，本仓库代码中最直接的学习证据集中在样式和模板。</td></tr>
-<tr><td>依赖属性和路由事件</td><td><code>ModeStateDiagram.Kind</code>、<code>Feedback</code>，按持行为的 <code>UseHold</code> 及 <code>Pressed/Released</code></td><td>WPF 属性系统解析绑定、样式等值来源。附加属性让普通 Button 使用行为；路由事件可以沿元素树冒泡。</td></tr>
-</tbody></table></div>
-<p class="refs">源码定位 <a class="ref" href="../Framework/Company.Hmi.Presentation/RealtimeAlarmView.xaml" title="Framework/Company.Hmi.Presentation/RealtimeAlarmView.xaml · Binding VisibleItems"><code>RealtimeAlarmView.xaml:62</code></a> <a class="ref" href="../Applications/FlyScan/Company.FlyScan.Shell/FlyHistoryPages.cs" title="Applications/FlyScan/Company.FlyScan.Shell/FlyHistoryPages.cs · class HistoryPage"><code>FlyHistoryPages.cs:10</code></a> <a class="ref" href="../Framework/Company.Hmi.Presentation/ComponentPageStyles.xaml" title="Framework/Company.Hmi.Presentation/ComponentPageStyles.xaml · ResourceDictionary"><code>ComponentPageStyles.xaml:1</code></a> <a class="ref" href="../Framework/Company.Hmi.Presentation/ModeStateDiagram.cs" title="Framework/Company.Hmi.Presentation/ModeStateDiagram.cs · KindProperty"><code>ModeStateDiagram.cs:21</code></a> <a class="ref" href="../Framework/Company.Hmi.Presentation/ModePressButton.cs" title="Framework/Company.Hmi.Presentation/ModePressButton.cs · UseHoldProperty"><code>ModePressButton.cs:26</code></a> <a href="https://learn.microsoft.com/en-us/dotnet/desktop-wpf/data/data-binding-overview">Microsoft Learn · 绑定</a> <a href="https://learn.microsoft.com/dotnet/desktop/wpf/advanced/dependency-properties-overview">Microsoft Learn · 依赖属性</a></p>
-<h3>在源码里认识泛型、LINQ、委托和事件</h3>
-<ul>
-<li><strong>泛型</strong>　<code>IReadOnlyList&lt;ScanAlarm&gt;</code> 表达调用方按报警记录读取集合，接口约束与底层集合的可变性要分别判断。<code>SimulationJson.Read&lt;T&gt;</code> 用类型参数复用反序列化流程；<code>Resolve&lt;MainWindow&gt;</code> 把容器解析目标表达为编译期类型。</li>
-<li><strong>LINQ</strong>　<code>Where</code> 筛选、<code>Select</code> 投影、<code>GroupBy</code> 分组、<code>ToArray</code> 执行并物化。FlyScan 分析页按报警码归组，再算次数与有效时长。SqlSugar 的 <code>Queryable&lt;T&gt;</code> 在数据库端执行的表达式要单独看，<code>Enumerable</code> 的操作则运行在本机对象上。</li>
-<li><strong>委托和事件</strong>　<code>Action&lt;AlarmHistorySelection&gt;</code> 把「从分析页转到历史页」交给宿主处理。<code>PropertyChanged</code> 表达变更已发生，订阅者的生存期越长，越要检查何时解绑。WPF 路由事件、普通 C# 事件、Prism 的 <code>PubSubEvent&lt;T&gt;</code> 可以从声明类型辨认。</li>
-<li><strong>记录、模式匹配、可空</strong>　用 <code>record</code> 表达快照和按值比较的结果，<code>with</code> 复制外层对象。引用成员可能共享，实时报警会复制已确认片段给界面。<code>bool?</code> 能表示未知，判定条件里 <code>true</code>、<code>false</code> 和 <code>null</code> 各有含义。</li>
-</ul>
-<p class="refs">源码定位 <a class="ref" href="../Applications/FlyScan/Company.FlyScan.Runtime/FlyScanRecipe.cs" title="Applications/FlyScan/Company.FlyScan.Runtime/FlyScanRecipe.cs · internal static T Read&lt;T&gt;"><code>FlyScanRecipe.cs:89</code></a> <a class="ref" href="../Applications/FlyScan/Company.FlyScan.Shell/FlyHistoryPages.cs" title="Applications/FlyScan/Company.FlyScan.Shell/FlyHistoryPages.cs · GroupBy"><code>FlyHistoryPages.cs:204</code></a> <a class="ref" href="../Applications/FlyScan/Company.FlyScan.Shell/FlyHistoryPages.cs" title="Applications/FlyScan/Company.FlyScan.Shell/FlyHistoryPages.cs · Action&lt;AlarmHistorySelection&gt;"><code>FlyHistoryPages.cs:100</code></a> <a class="ref" href="../Applications/FlyScan/Company.FlyScan.Runtime/FlyScanHistory.cs" title="Applications/FlyScan/Company.FlyScan.Runtime/FlyScanHistory.cs · run.KnownSpans.ToArray()"><code>FlyScanHistory.cs:199</code></a> <a class="ref" href="../Framework/Company.Hmi.Presentation/BusinessPage.cs" title="Framework/Company.Hmi.Presentation/BusinessPage.cs · PageVisibilityChanged"><code>BusinessPage.cs:18</code></a></p>
-<h3>WPF 性能怎么查</h3>
-<p>DataGrid 可启用行/列虚拟化并回收容器，减少长列表需要创建的可视对象。表的滚动容器、布局约束和模板复杂度决定虚拟化能否有效工作。数据虚拟化则要看分页、按需读取或限量查询。优化时先分开观察查询、绑定、布局和渲染，再用可视化树核对元素个数。当前离线基准包含绑定与离屏布局，GPU 渲染和实机帧时间是另外的观测目标。</p>
-<details><summary>自测 · 为什么给表格开虚拟化后，实时报警仍可能卡？</summary><p>虚拟化影响 WPF 容器数量，旧实现每次刷新仍要从 SQLite 重建全部报警与缺口，查询线程的时间和内存分配依旧存在。两个层次分别测量。</p></details>
-<p class="chapter-end"><a href="#alarm">下一章 · 第一条完整调用链 · FlyScan 实时报警</a></p>
+<section class="chapter" id="prism-project">
+<h2>Prism 在项目中的实际落点</h2>
+<p class="lead">先分清两层窗口结构。<code>Company.Shell</code> 选中产品并启动对应的 <code>App</code>。在 PLC HMI 中，主窗口装载登录和主面板，主面板再切换业务页。FlyScan 在主窗口内装配仿真用的页签与共享控件。</p>
+<h3>主窗口先完成登录和初始化</h3>
+<ol class="flow" aria-label="PLC HMI 登录到主面板"><li>主窗口 Loaded</li><li class="arrow" aria-hidden="true">→</li><li>MainRegion 显示登录页</li><li class="arrow" aria-hidden="true">→</li><li>LoginSuccessEvent</li><li class="arrow" aria-hidden="true">→</li><li>初始化页启动后台</li><li class="arrow" aria-hidden="true">→</li><li>MainRegion 显示主面板</li></ol>
+<p>登录成功事件把用户带到主窗口的订阅回调；初始化页通过生命周期服务准备历史与 PLC 后台，完成后再请求进入主面板。这里可以分别观察 Prism 导航和应用后台初始化这两段代码。</p>
+<p class="refs">源码定位 <a class="ref" href="../Applications/PlcHmi/Company.PlcHmi.Shell/ViewModels/MainWindowViewModel.cs" title="Applications/PlcHmi/Company.PlcHmi.Shell/ViewModels/MainWindowViewModel.cs · Subscribe(OnLogined, ThreadOption.UIThread)"><code>MainWindowViewModel.cs:53</code></a> <a class="ref" href="../Applications/PlcHmi/Company.PlcHmi.Startup/ViewModels/InitializeViewModel.cs" title="Applications/PlcHmi/Company.PlcHmi.Startup/ViewModels/InitializeViewModel.cs · await _lifecycle.StartAsync"><code>InitializeViewModel.cs:70</code></a> <a class="ref" href="../Applications/PlcHmi/Company.PlcHmi.Startup/ViewModels/InitializeViewModel.cs" title="Applications/PlcHmi/Company.PlcHmi.Startup/ViewModels/InitializeViewModel.cs · RequestNavigate(RegionNames.MainRegion, ViewNames.MainView)"><code>InitializeViewModel.cs:73</code></a></p>
+<h3>Region 导航 · 从设备监控按钮追到页面</h3>
+<ol class="flow" aria-label="从菜单命令到工作区视图"><li>菜单按钮绑定命令</li><li class="arrow" aria-hidden="true">→</li><li>Navigate 复核页面权限</li><li class="arrow" aria-hidden="true">→</li><li>RequestNavigate(WorkspaceRegion, ViewName)</li><li class="arrow" aria-hidden="true">→</li><li>容器按名称找到视图</li><li class="arrow" aria-hidden="true">→</li><li>目标页面激活</li></ol>
+<p><code>RegionName</code> 是放页面的位置，例如 <code>WorkspaceRegion</code>。<code>ViewName</code> 是要显示哪个页面，例如 <code>DeviceMonitorView</code>。本项目对部分业务页使用命名单例，让初始化预热与后续导航拿到同一实例。<code>ResidentWorkspaceHost</code> 会保留视图并切换显隐。</p>
+<p>进入、离开和复用分别看 <code>OnNavigatedTo</code>、<code>OnNavigatedFrom</code>、<code>IsNavigationTarget</code>。<code>KeepAlive</code> 与容器单例、视图可见性是三个不同的条件。现有 IO 页同时检查“已导航”和“实际可见”，才订阅快照或开始页面刷新。</p>
+<p class="refs">源码定位 <a class="ref" href="../Applications/PlcHmi/Company.PlcHmi.Main/Views/MainView.xaml" title="Applications/PlcHmi/Company.PlcHmi.Main/Views/MainView.xaml · share:RegionNames.WorkspaceRegion"><code>MainView.xaml:51</code></a> <a class="ref" href="../Applications/PlcHmi/Company.PlcHmi.Menu/ViewModels/MenuViewModel.cs" title="Applications/PlcHmi/Company.PlcHmi.Menu/ViewModels/MenuViewModel.cs · private void Navigate"><code>MenuViewModel.cs:95</code></a> <a class="ref" href="../Applications/PlcHmi/Company.PlcHmi.Main/Presentation/ResidentWorkspaceHost.cs" title="Applications/PlcHmi/Company.PlcHmi.Main/Presentation/ResidentWorkspaceHost.cs · private void Display"><code>ResidentWorkspaceHost.cs:73</code></a> <a class="ref" href="../Applications/PlcHmi/Company.PlcHmi.Main/ViewModels/IoMonitorViewModel.cs" title="Applications/PlcHmi/Company.PlcHmi.Main/ViewModels/IoMonitorViewModel.cs · public void OnNavigatedFrom"><code>IoMonitorViewModel.cs:286</code></a></p>
+<p class="chapter-end"><a href="#walkthrough">下一章 · 跟着程序运行一次</a></p>
 </section>
-
-<section class="chapter" id="alarm">
-<h2>第一条完整调用链 · FlyScan 实时报警</h2>
-<p class="lead">从界面右上方看到一条运动卡告警，沿两个方向跟踪。一条路把观测写入状态，另一条路把状态送到页面。</p>
-<ol class="flow" aria-label="采样到报警状态"><li>仿真输入</li><li class="arrow" aria-hidden="true">→</li><li>FlyScanPage 记录观测</li><li class="arrow" aria-hidden="true">→</li><li>FlyScanHistory.Observe</li><li class="arrow" aria-hidden="true">→</li><li>SQLite 与活动报警</li></ol>
-<ol class="flow" aria-label="报警状态到页面"><li>页面可见性 + DispatcherTimer</li><li class="arrow" aria-hidden="true">→</li><li>HistoryPage.Query</li><li class="arrow" aria-hidden="true">→</li><li>FlyAlarmPage.Refresh / LiveAlarms</li><li class="arrow" aria-hidden="true">→</li><li>VisibleItems 与 DataGrid</li></ol>
-<ol>
-<li>飞拍 Shell 的 <code>App.RegisterTypes</code> 创建一个 <code>FlyScanHistory</code>。<code>MainWindow.SetupHistoryPages</code> 以同一实例创建实时、历史、分析、产量和日志的显示模型。<code>BusinessPage</code> 报告真实可见性，模型由 <code>SetVisible</code> 接收。</li>
-<li><code>FlyScanPage</code> 读取模拟通讯和报警信号，调用 <code>Observe</code>。状态变化写入新观测，短间隔稳定反馈沿用已有观测，按心跳延长其 <code>observed_until</code>。观测的核心字段包括开始、已确认截止、会话、连接状态和报警位。</li>
-<li>窗口的摘要计时器触发 <code>Query</code>。不可见页面直接返回；实时页调用 <code>LiveAlarms</code>，把活动事件变成显示行。在线显示活动报警，反馈失效时显示未知项，并保留可用的历史开始时间或片段信息。</li>
-<li><code>Changed()</code> 通知绑定重读，WPF 用新的 <code>VisibleItems</code> 填表。历史页和分析页调用 <code>Alarms(from, to)</code>，保留筛选、分页、排名与区间裁剪的路径。</li>
-</ol>
-<p class="refs">源码定位 <a class="ref" href="../Applications/FlyScan/Company.FlyScan.Shell/FlyScanPage.xaml.cs" title="Applications/FlyScan/Company.FlyScan.Shell/FlyScanPage.xaml.cs · _history.Observe"><code>FlyScanPage.xaml.cs:227</code></a> <a class="ref" href="../Applications/FlyScan/Company.FlyScan.Shell/MainWindow.History.cs" title="Applications/FlyScan/Company.FlyScan.Shell/MainWindow.History.cs · SetupHistoryPages"><code>MainWindow.History.cs:9</code></a> <a class="ref" href="../Applications/FlyScan/Company.FlyScan.Shell/FlyHistoryPages.cs" title="Applications/FlyScan/Company.FlyScan.Shell/FlyHistoryPages.cs · internal void Query()"><code>FlyHistoryPages.cs:36</code></a> <a class="ref" href="../Applications/FlyScan/Company.FlyScan.Shell/FlyHistoryPages.cs" title="Applications/FlyScan/Company.FlyScan.Shell/FlyHistoryPages.cs · History.LiveAlarms"><code>FlyHistoryPages.cs:180</code></a> <a class="ref" href="../Framework/Company.Hmi.Presentation/RealtimeAlarmView.xaml" title="Framework/Company.Hmi.Presentation/RealtimeAlarmView.xaml · Binding VisibleItems"><code>RealtimeAlarmView.xaml:62</code></a></p>
-<h3>一次刷新原来做什么，现在做什么</h3>
-<p>旧路径每次读取整个 <code>observations</code>，重建活动和已关闭的报警、切分采集缺口，最后实时页只取仍活动的记录。新实现把活动报警保存在 <code>_activeAlarms</code>，写入成功后推进内存状态，稳定心跳扩展已知区间。启动时从最近一条在线且全部报警解除的记录开始恢复后续活动状态；缺少这样的记录时需要回放历史。<code>ApplyObservation</code> 让历史重建和实时推进使用同样的规则。</p>
-<p>以 UTC 08:00:00 的活动报警为例，连接断开前确认了两秒，08:00:08 重连后又确认了一秒，那么已确认时长为三秒，08:00:02 至 08:00:08 是这次断线缺口。缺口影响时长的可信边界。多个报警的时长可能重叠，所以累计报警时长与设备停机时长是不同指标。本版在 SQLite 采样写入失败后中断会话连续性。下一次成功采样另开区间，失败期间作为未知缺口处理。</p>
-<details><summary>展开源码片段 · FlyScanHistory.cs:193</summary><pre><code>public ScanLiveAlarmReport LiveAlarms(DateTimeOffset through)
-{
-    var online = Online;
-    var alarms = _activeAlarms.Values.Where(run =&gt; run.Start &lt;= through)
-        .OrderByDescending(run =&gt; run.Start)
-        .ThenBy(run =&gt; run.Code, StringComparer.Ordinal)
-        .Select(run =&gt; run.ToAlarm(null, run.KnownSpans.ToArray(), forceUncertain: !online))
-        .ToArray();
-    return new ScanLiveAlarmReport(alarms, online);
-}
-// …</code></pre></details>
-<p class="refs">源码定位 <a class="ref" href="../Applications/FlyScan/Company.FlyScan.Runtime/FlyScanHistory.cs" title="Applications/FlyScan/Company.FlyScan.Runtime/FlyScanHistory.cs · private void RecoverActiveAlarms"><code>FlyScanHistory.cs:66</code></a> <a class="ref" href="../Applications/FlyScan/Company.FlyScan.Runtime/FlyScanHistory.cs" title="Applications/FlyScan/Company.FlyScan.Runtime/FlyScanHistory.cs · private static void ApplyObservation"><code>FlyScanHistory.cs:232</code></a> <a class="ref" href="../Applications/FlyScan/Company.FlyScan.Runtime/FlyScanHistory.cs" title="Applications/FlyScan/Company.FlyScan.Runtime/FlyScanHistory.cs · public TimeSpan KnownDuration"><code>FlyScanHistory.cs:12</code></a> <a class="ref" href="../docs/FlyScanAlarmRefreshVerification.md" title="docs/FlyScanAlarmRefreshVerification.md · ## 报警时长与断线缺口"><code>FlyScanAlarmRefreshVerification.md:26</code></a></p>
-<h3>如何讲清优化证据</h3>
-<p>提交记录的对比基于同一份 50,000 条 SQLite 观测，两个版本各跑三轮，每轮 300 次离屏 WPF 刷新。按三轮中位值，刷新中位耗时 <strong>39.80 → 5.61 ms</strong>，P95 <strong>58.18 → 9.10 ms</strong>，UI 线程分配下降 <strong>97.6%</strong>，每轮 Gen 0/1/2 收集次数 <strong>445/168/7 → 11/5/1</strong>。2,002 条报警、1,102 个缺口、58,006 秒累计已确认时长一致。基准含查询、绑定和布局，启动恢复在计时区间外。</p>
-<p class="refs">源码定位 <a class="ref" href="../tests/SharedControlPages.Smoke/AlarmRefreshBenchmark.cs" title="tests/SharedControlPages.Smoke/AlarmRefreshBenchmark.cs · private static object MeasureAlarmRefresh"><code>AlarmRefreshBenchmark.cs:93</code></a> <a class="ref" href="../docs/FlyScanAlarmRefreshVerification.md" title="docs/FlyScanAlarmRefreshVerification.md · ## 刷新性能"><code>FlyScanAlarmRefreshVerification.md:13</code></a></p>
-<div class="callout lab"><p><strong>断点练习</strong> 在仿真勾选运动卡告警，查看 <code>Observe</code> 的输入，再切到报警监控观察 <code>LiveAlarms</code> 和 <code>VisibleItems</code>。切到历史子页，观察查询入口如何变化。继续切换仿真通讯，比较断开前后的在线状态与已确认区间。</p></div>
-<details><summary>参考答案</summary><p>实时页只有在可见时取活动投影；历史页按用户的时间窗回放持久化观测。断开后 <code>Online</code> 为假，界面出现未知语义，已确认区间依然可查。停止刷新计时器会影响显示更新，观测的持久化由采样入口决定。</p></details>
+<section class="chapter" id="walkthrough">
+<h2>跟着程序运行一次</h2>
+<p class="lead">选择一个实际场景，按步骤看当前执行位置、下一步去哪里、调试时要观察什么。流程演示独立于设备，可以在浏览器里离线使用。</p>
+<div class="scenario-controls" id="run-controls" hidden>
+<label for="run-route">选择场景</label>
+<select id="run-route"><option value="start-plc">启动 PLC HMI</option><option value="start-fly">启动 FlyScan 仿真</option><option value="read-plc">PLC 的 IO 反馈显示出来</option><option value="write-plc">点击 PLC 操作按钮</option><option value="scan-fly">FlyScan 仿真推进并刷新报警</option><option value="exit-plc">退出 PLC HMI</option></select>
+<div class="step-actions"><button id="run-prev" type="button">上一步</button><button id="run-next" type="button">下一步</button><button id="run-reset" type="button">回到第一步</button></div>
+</div>
+<div id="run-live"><p id="run-state" class="step-status" role="status"></p>
+<div id="runner-panel" hidden><ol id="run-track" class="run-track" aria-label="流程步骤"></ol><div id="run-card" class="run-card"></div></div></div>
+<div id="run-guides">
+<section data-route="start-plc" aria-label="启动 PLC HMI">
+<h3>启动 PLC HMI</h3><ol class="run-source">
+<li data-lane="构建阶段"><h4>选中 PLC HMI 产品</h4><p>通常用 <code>Debug</code> 或 <code>Release</code> 编译。构建配置先决定产物里包含哪套 <code>App</code>、模块与页面。</p><p class="refs"><a class="ref" href="../Company.Shell/Directory.Build.props" title="Company.Shell/Directory.Build.props · &gt;PlcHmi&lt;"><code>Directory.Build.props:6</code></a></p></li>
+<li data-lane="UI 线程"><h4>执行统一入口 Main</h4><p>创建当前产品的 <code>App</code>，加载 WPF 资源，然后进入 <code>Run()</code>。从这里能确认这次运行的是哪套应用。</p><p class="refs"><a class="ref" href="../Company.Shell/Program.cs" title="Company.Shell/Program.cs · var application = new ProductApplication()"><code>Program.cs:14</code></a></p></li>
+<li data-lane="UI 装配"><h4>加载窗口与模块</h4><p>PLC HMI 用模块目录组织装配。跟着注册接口的代码看实际创建的账户、历史、操作和 PLC 服务。</p><p class="refs"><a class="ref" href="../Applications/PlcHmi/Company.PlcHmi.Shell/App.xaml.cs" title="Applications/PlcHmi/Company.PlcHmi.Shell/App.xaml.cs · return new DirectoryModuleCatalog"><code>App.xaml.cs:289</code></a> <a class="ref" href="../Applications/PlcHmi/Company.PlcHmi.Composition/Plc/PlcHmiPlcModule.cs" title="Applications/PlcHmi/Company.PlcHmi.Composition/Plc/PlcHmiPlcModule.cs · RegisterTypes"><code>PlcHmiPlcModule.cs:16</code></a></p></li>
+<li data-lane="UI 发起，后台运行"><h4>准备数据并启动 PLC 后台</h4><p>初始化页面等待生命周期启动。先准备操作入口和历史，再启动 PLC 运行与持续采集。后台就绪与 PLC 连接已成功属于不同状态。</p><p class="refs"><a class="ref" href="../Applications/PlcHmi/Company.PlcHmi.Startup/ViewModels/InitializeViewModel.cs" title="Applications/PlcHmi/Company.PlcHmi.Startup/ViewModels/InitializeViewModel.cs · await _lifecycle.StartAsync"><code>InitializeViewModel.cs:70</code></a> <a class="ref" href="../Applications/PlcHmi/Company.PlcHmi.Plc/Lifecycle/PlcLifecycleAdapter.cs" title="Applications/PlcHmi/Company.PlcHmi.Plc/Lifecycle/PlcLifecycleAdapter.cs · lifecycle.Register"><code>PlcLifecycleAdapter.cs:20</code></a></p></li>
+<li data-lane="UI 线程"><h4>将页面放进主工作区</h4><p>菜单发出目标视图名，Prism 将它放进 <code>WorkspaceRegion</code>。先看到窗口，再通过采集反馈看到设备状态。</p><p class="refs"><a class="ref" href="../Applications/PlcHmi/Company.PlcHmi.Menu/ViewModels/MenuViewModel.cs" title="Applications/PlcHmi/Company.PlcHmi.Menu/ViewModels/MenuViewModel.cs · RegionManager.RequestNavigate"><code>MenuViewModel.cs:98</code></a></p></li>
+</ol></section>
+<section data-route="start-fly" aria-label="启动 FlyScan 仿真">
+<h3>启动 FlyScan 仿真</h3><ol class="run-source">
+<li data-lane="构建阶段"><h4>选中 FlyScan 产品</h4><p><code>FlyScanDebug</code> 或 <code>FlyScanRelease</code> 选中飞拍源码。编译条件让同一个 <code>Main</code> 创建 FlyScan 的 <code>App</code>。</p><p class="refs"><a class="ref" href="../Company.Shell/Directory.Build.props" title="Company.Shell/Directory.Build.props · &gt;FlyScan&lt;"><code>Directory.Build.props:5</code></a> <a class="ref" href="../Company.Shell/Program.cs" title="Company.Shell/Program.cs · using ProductApplication = Company.FlyScan.Shell.App"><code>Program.cs:2</code></a></p></li>
+<li data-lane="UI 装配"><h4>注册模拟机与数据服务</h4><p>FlyScan 的 Prism <code>App</code> 注册模拟机、模式页、轴参数和气缸页等对象，并提供 SQLite 历史实例。此入口使用仿真驱动。</p><p class="refs"><a class="ref" href="../Applications/FlyScan/Company.FlyScan.Shell/App.xaml.cs" title="Applications/FlyScan/Company.FlyScan.Shell/App.xaml.cs · protected override void RegisterTypes"><code>App.xaml.cs:13</code></a> <a class="ref" href="../Applications/FlyScan/Company.FlyScan.Runtime/SimulatedMachine.cs" title="Applications/FlyScan/Company.FlyScan.Runtime/SimulatedMachine.cs · NoneControlCard.CreateForSimulation"><code>SimulatedMachine.cs:36</code></a></p></li>
+<li data-lane="UI 线程"><h4>组装窗口与页签</h4><p>容器解析主窗口。窗口把服务或页面模型设成对应共享页面的 <code>DataContext</code>，页签切换当前视图。</p><p class="refs"><a class="ref" href="../Applications/FlyScan/Company.FlyScan.Shell/App.xaml.cs" title="Applications/FlyScan/Company.FlyScan.Shell/App.xaml.cs · Window CreateShell()"><code>App.xaml.cs:25</code></a> <a class="ref" href="../Applications/FlyScan/Company.FlyScan.Shell/MainWindow.History.cs" title="Applications/FlyScan/Company.FlyScan.Shell/MainWindow.History.cs · private void SetupHistoryPages"><code>MainWindow.History.cs:9</code></a></p></li>
+<li data-lane="UI 计时器"><h4>按用途刷新画面</h4><p>轴反馈刷新与报警摘要使用不同的 Dispatcher 计时器。飞拍页面的步进计时器可推动仿真工作流，这些回调都由 UI Dispatcher 调度。</p><p class="refs"><a class="ref" href="../Applications/FlyScan/Company.FlyScan.Shell/MainWindow.xaml.cs" title="Applications/FlyScan/Company.FlyScan.Shell/MainWindow.xaml.cs · _summaryRefresh = new()"><code>MainWindow.xaml.cs:16</code></a> <a class="ref" href="../Applications/FlyScan/Company.FlyScan.Shell/FlyScanPage.xaml.cs" title="Applications/FlyScan/Company.FlyScan.Shell/FlyScanPage.xaml.cs · _timer.Tick +="><code>FlyScanPage.xaml.cs:52</code></a></p></li>
+</ol></section>
+<section data-route="read-plc" aria-label="PLC 的 IO 反馈显示出来">
+<h3>PLC 的 IO 反馈显示出来</h3><ol class="run-source">
+<li data-lane="UI 线程"><h4>切换设备或 IO 分组</h4><p>页面提交自己的采集需求。检查设备号、逻辑点、DI/DO 类型和分组。</p><p class="refs"><a class="ref" href="../Applications/PlcHmi/Company.PlcHmi.Main/ViewModels/IoMonitorViewModel.cs" title="Applications/PlcHmi/Company.PlcHmi.Main/ViewModels/IoMonitorViewModel.cs · OpenPageScopeAsync(request)"><code>IoMonitorViewModel.cs:187</code></a></p></li>
+<li data-lane="PLC 后台任务"><h4>轮询读取设备</h4><p>轮询任务将逻辑点交给连接层和 OPC UA 客户端读取。连接层通过该设备的门协调并发访问。</p><p class="refs"><a class="ref" href="../Applications/PlcHmi/Company.PlcHmi.Plc/Acquisition/PlcPollingScheduler.cs" title="Applications/PlcHmi/Company.PlcHmi.Plc/Acquisition/PlcPollingScheduler.cs · Task.Run(() =&gt; Poll"><code>PlcPollingScheduler.cs:27</code></a> <a class="ref" href="../Applications/PlcHmi/Company.PlcHmi.Plc/Connections/PlcConnectionManager.cs" title="Applications/PlcHmi/Company.PlcHmi.Plc/Connections/PlcConnectionManager.cs · internal async Task&lt;bool&gt; ReadAsync"><code>PlcConnectionManager.cs:175</code></a></p></li>
+<li data-lane="后台写入快照"><h4>把值、质量和时间存到内存</h4><p>协议层的数据映射为统一快照。连接代次变化后，旧会话的反馈不能当成本次有效值。</p><p class="refs"><a class="ref" href="../Applications/PlcHmi/Company.PlcHmi.Plc/Data/PlcValueMapper.cs" title="Applications/PlcHmi/Company.PlcHmi.Plc/Data/PlcValueMapper.cs · PlcVariableSnapshot Map"><code>PlcValueMapper.cs:23</code></a> <a class="ref" href="../Applications/PlcHmi/Company.PlcHmi.Plc/Data/PlcDataStore.cs" title="Applications/PlcHmi/Company.PlcHmi.Plc/Data/PlcDataStore.cs · class PlcDataStore"><code>PlcDataStore.cs:13</code></a></p></li>
+<li data-lane="UI 线程"><h4>页面从快照刷新每一行</h4><p>UI 通知经 Dispatcher 回到页面，页面计时器也可从内存刷新。转到别页会影响本页观察，后台报警、产量消费者仍按自己的规则工作。</p><p class="refs"><a class="ref" href="../Applications/PlcHmi/Company.PlcHmi.Main/ViewModels/IoMonitorViewModel.cs" title="Applications/PlcHmi/Company.PlcHmi.Main/ViewModels/IoMonitorViewModel.cs · var dispatcher = _timer.Dispatcher"><code>IoMonitorViewModel.cs:93</code></a></p></li>
+</ol></section>
+<section data-route="write-plc" aria-label="点击 PLC 操作按钮">
+<h3>点击 PLC 操作按钮</h3><ol class="run-source">
+<li data-lane="UI 线程"><h4>把点击或按住变成操作请求</h4><p>先定位 ViewModel 命令。按住操作还有按下、松开两个入口，需分别看命令和显示状态。</p><p class="refs"><a class="ref" href="../Framework/Company.Hmi.Presentation/ModePressButton.cs" title="Framework/Company.Hmi.Presentation/ModePressButton.cs · public static readonly RoutedEvent PressedEvent"><code>ModePressButton.cs:29</code></a></p></li>
+<li data-lane="应用服务"><h4>捕获身份、目标与连接上下文</h4><p>操作服务生成请求。角色、模式、有效反馈、维护状态和授权版本都会影响结果。</p><p class="refs"><a class="ref" href="../Applications/PlcHmi/Company.PlcHmi.Plc/Writing/PlcWriteService.cs" title="Applications/PlcHmi/Company.PlcHmi.Plc/Writing/PlcWriteService.cs · public async Task&lt;PlcWriteReport&gt; ExecuteAsync"><code>PlcWriteService.cs:63</code></a></p></li>
+<li data-lane="通讯等待"><h4>等待设备门并在发送前复核</h4><p>获得本设备访问权后再次验证操作条件。排队期间断线或权限变化时，之前有效的请求可能无法发送。</p><p class="refs"><a class="ref" href="../Applications/PlcHmi/Company.PlcHmi.Plc/Connections/PlcConnectionManager.cs" title="Applications/PlcHmi/Company.PlcHmi.Plc/Connections/PlcConnectionManager.cs · internal async Task&lt;PlcWriteReport&gt; WriteSequenceAsync"><code>PlcConnectionManager.cs:209</code></a></p></li>
+<li data-lane="反馈返回 UI"><h4>用回读和下一次采集确认结果</h4><p>分开记录「已发送」「回读确认」「设备状态改变」。界面状态跟随有效 PLC 反馈。</p><p class="refs"><a class="ref" href="../Applications/PlcHmi/Company.PlcHmi.Main/ViewModels/ModeControlViewModel.cs" title="Applications/PlcHmi/Company.PlcHmi.Main/ViewModels/ModeControlViewModel.cs · DebugParameterAccess.Begin"><code>ModeControlViewModel.cs:339</code></a></p></li>
+</ol></section>
+<section data-route="scan-fly" aria-label="FlyScan 仿真推进并刷新报警">
+<h3>FlyScan 仿真推进并刷新报警</h3><ol class="run-source">
+<li data-lane="观测记录"><h4>先记录当前报警输入</h4><p>每次步进计时器回调先调用 ObserveSignals，历史服务写 SQLite 并推进活动报警。写入失败打断连续观测。</p><p class="refs"><a class="ref" href="../Applications/FlyScan/Company.FlyScan.Shell/FlyScanPage.xaml.cs" title="Applications/FlyScan/Company.FlyScan.Shell/FlyScanPage.xaml.cs · _history.Observe"><code>FlyScanPage.xaml.cs:227</code></a> <a class="ref" href="../Applications/FlyScan/Company.FlyScan.Runtime/FlyScanHistory.cs" title="Applications/FlyScan/Company.FlyScan.Runtime/FlyScanHistory.cs · public void Observe"><code>FlyScanHistory.cs:91</code></a></p></li>
+<li data-lane="UI 计时器"><h4>取得输入，推进仿真一步</h4><p>飞拍页使用 50 ms 的仿真步长。在自动步进开启且流程运行时，把读到的输入交给工作流。这里的步长是仿真推进量。</p><p class="refs"><a class="ref" href="../Applications/FlyScan/Company.FlyScan.Shell/FlyScanPage.xaml.cs" title="Applications/FlyScan/Company.FlyScan.Shell/FlyScanPage.xaml.cs · AutoStep.IsChecked == true"><code>FlyScanPage.xaml.cs:55</code></a></p></li>
+<li data-lane="同一调用中的业务逻辑"><h4>先看是否能继续，再推进运动</h4><p>断连、机器人失位和 Ready 丢失等条件先参与判定，正常时才继续推进位置和触发逻辑。查看 <code>Phase</code> 和中断原因。</p><p class="refs"><a class="ref" href="../Applications/FlyScan/Company.FlyScan.Runtime/FlyScanWorkflow.cs" title="Applications/FlyScan/Company.FlyScan.Runtime/FlyScanWorkflow.cs · public void Tick"><code>FlyScanWorkflow.cs:173</code></a></p></li>
+<li data-lane="UI 摘要计时器"><h4>实时页读取活动报警</h4><p>摘要刷新在可见页面调用 <code>LiveAlarms</code>，WPF 通过绑定显示活动行。可以用断点确认这一环读取的是内存状态。</p><p class="refs"><a class="ref" href="../Applications/FlyScan/Company.FlyScan.Shell/FlyHistoryPages.cs" title="Applications/FlyScan/Company.FlyScan.Shell/FlyHistoryPages.cs · History.LiveAlarms"><code>FlyHistoryPages.cs:180</code></a></p></li>
+</ol></section>
+<section data-route="exit-plc" aria-label="退出 PLC HMI">
+<h3>退出 PLC HMI</h3><ol class="run-source">
+<li data-lane="UI 线程"><h4>窗口区分托盘与关闭</h4><p>最小化到托盘继续采集。选择关闭才进入退出编排。</p><p class="refs"><a class="ref" href="../Applications/PlcHmi/Company.PlcHmi.Shell/Views/MainWindow.xaml.cs" title="Applications/PlcHmi/Company.PlcHmi.Shell/Views/MainWindow.xaml.cs · Dispatcher.BeginInvoke(new Action(ChooseCloseActionAsync))"><code>MainWindow.xaml.cs:49</code></a></p></li>
+<li data-lane="后台协调任务"><h4>收尾操作，再停 PLC</h4><p>统一退出任务先限制新操作，并尝试清理已记录的瞬时请求，随后停止采集、连接及分发。</p><p class="refs"><a class="ref" href="../Framework/Company.Core/Runtime/ApplicationLifecycle.cs" title="Framework/Company.Core/Runtime/ApplicationLifecycle.cs · _stop = Task.Run(StopCoreAsync)"><code>ApplicationLifecycle.cs:97</code></a> <a class="ref" href="../Applications/PlcHmi/Company.PlcHmi.Plc/Lifecycle/PlcLifecycleAdapter.cs" title="Applications/PlcHmi/Company.PlcHmi.Plc/Lifecycle/PlcLifecycleAdapter.cs · operations.QuiesceAsync"><code>PlcLifecycleAdapter.cs:20</code></a></p></li>
+<li data-lane="后台保存与 UI 等待"><h4>历史收尾后关闭窗口</h4><p>等待历史消费者和写入器结束。窗口等待有时间限制，后台清理任务仍由协调器负责，后续关闭可继续等待。</p><p class="refs"><a class="ref" href="../Applications/PlcHmi/Company.PlcHmi.Main/Services/History/PlcHistoryLifecycle.cs" title="Applications/PlcHmi/Company.PlcHmi.Main/Services/History/PlcHistoryLifecycle.cs · public async Task StopAsync"><code>PlcHistoryLifecycle.cs:78</code></a> <a class="ref" href="../LifecycleOperations.md" title="LifecycleOperations.md · 窗口与兼容"><code>LifecycleOperations.md:32</code></a></p></li>
+</ol></section>
+</div>
 <p class="chapter-end"><a href="#plc-read">下一章 · PLC HMI · 从 OPC UA 到共享 IO 页面</a></p>
 </section>
 <section class="chapter" id="plc-read">
@@ -269,7 +521,6 @@ dotnet run --project tests/FlyScan.Workflow.Smoke/FlyScan.Workflow.Smoke.csproj<
 <details><summary>参考答案</summary><p>撤销输入会先走中断，停止产生新的触发并进入恢复逻辑。Ready 回来只恢复了一个前置条件，流程仍需显式恢复并核对现场输入。此前已经确认的组继续记账，当前未确认的组需要重做。</p></details>
 <p class="chapter-end"><a href="#motion">下一章 · 运动控制 · 轴、坐标系、同步与厂商能力</a></p>
 </section>
-
 <section class="chapter" id="motion">
 <h2>运动控制 · 轴、坐标系、同步与厂商能力</h2>
 <div class="table-wrap"><table><thead><tr><th>层</th><th>范围</th><th>谁拥有</th></tr></thead><tbody>
@@ -291,6 +542,65 @@ dotnet run --project tests/FlyScan.Workflow.Smoke/FlyScan.Workflow.Smoke.csproj<
 <p class="refs">源码定位 <a class="ref" href="../Hardware/Company.Hardware.ControlCard/Models/MotionCapabilities.cs" title="Hardware/Company.Hardware.ControlCard/Models/MotionCapabilities.cs · public enum CapabilityValidation"><code>MotionCapabilities.cs:15</code></a> <a class="ref" href="../Hardware/Company.Hardware.ControlCard.INOVANCE/InovanceNativeLibrary.cs" title="Hardware/Company.Hardware.ControlCard.INOVANCE/InovanceNativeLibrary.cs · SetDllImportResolver"><code>InovanceNativeLibrary.cs:18</code></a> <a class="ref" href="../Hardware/Company.Hardware.ControlCard.INOVANCE/Api/ImcApi.cs" title="Hardware/Company.Hardware.ControlCard.INOVANCE/Api/ImcApi.cs · DllImport"><code>ImcApi.cs:509</code></a> <a class="ref" href="../Applications/FlyScan/Company.FlyScan.Runtime/SimulatedMachine.cs" title="Applications/FlyScan/Company.FlyScan.Runtime/SimulatedMachine.cs · NoneControlCard.CreateForSimulation"><code>SimulatedMachine.cs:36</code></a> <a class="ref" href="../docs/H0Verification.md" title="docs/H0Verification.md · H0"><code>H0Verification.md:1</code></a></p>
 <div class="callout lab"><p><strong>断点练习</strong> 运行运动配置测试，在校验器里比较 13 轴和两轴样本。画出逻辑轴名、硬件编号、坐标组和同步组四种关系，再用仿真反馈确认 R1/R2 的位置变化。</p></div>
 <details><summary>参考答案</summary><p>硬件编号用于驱动，坐标组写逻辑键，R2 通过同步组关联 R1。仿真能证明配置关联和调用约束；真实同步精度与触发波形需对应的现场设备证据。</p></details>
+<p class="chapter-end"><a href="#alarm">下一章 · FlyScan 实时报警 · 从信号到界面</a></p>
+</section>
+<section class="chapter" id="alarm">
+<h2>FlyScan 实时报警 · 从信号到界面</h2>
+<p class="lead">从界面右上方看到一条运动卡告警，沿两个方向跟踪。一条路把观测写入状态，另一条路把状态送到页面。</p>
+<ol class="flow" aria-label="采样到报警状态"><li>仿真输入</li><li class="arrow" aria-hidden="true">→</li><li>FlyScanPage 记录观测</li><li class="arrow" aria-hidden="true">→</li><li>FlyScanHistory.Observe</li><li class="arrow" aria-hidden="true">→</li><li>SQLite 与活动报警</li></ol>
+<ol class="flow" aria-label="报警状态到页面"><li>页面可见性 + DispatcherTimer</li><li class="arrow" aria-hidden="true">→</li><li>HistoryPage.Query</li><li class="arrow" aria-hidden="true">→</li><li>FlyAlarmPage.Refresh / LiveAlarms</li><li class="arrow" aria-hidden="true">→</li><li>VisibleItems 与 DataGrid</li></ol>
+<ol>
+<li>飞拍 Shell 的 <code>App.RegisterTypes</code> 创建一个 <code>FlyScanHistory</code>。<code>MainWindow.SetupHistoryPages</code> 以同一实例创建实时、历史、分析、产量和日志的显示模型。<code>BusinessPage</code> 报告真实可见性，模型由 <code>SetVisible</code> 接收。</li>
+<li><code>FlyScanPage</code> 读取模拟通讯和报警信号，调用 <code>Observe</code>。状态变化写入新观测，短间隔稳定反馈沿用已有观测，按心跳延长其 <code>observed_until</code>。观测的核心字段包括开始、已确认截止、会话、连接状态和报警位。</li>
+<li>窗口的摘要计时器触发 <code>Query</code>。不可见页面直接返回；实时页调用 <code>LiveAlarms</code>，把活动事件变成显示行。在线显示活动报警，反馈失效时显示未知项，并保留可用的历史开始时间或片段信息。</li>
+<li><code>Changed()</code> 通知绑定重读，WPF 用新的 <code>VisibleItems</code> 填表。历史页和分析页调用 <code>Alarms(from, to)</code>，保留筛选、分页、排名与区间裁剪的路径。</li>
+</ol>
+<p class="refs">源码定位 <a class="ref" href="../Applications/FlyScan/Company.FlyScan.Shell/FlyScanPage.xaml.cs" title="Applications/FlyScan/Company.FlyScan.Shell/FlyScanPage.xaml.cs · _history.Observe"><code>FlyScanPage.xaml.cs:227</code></a> <a class="ref" href="../Applications/FlyScan/Company.FlyScan.Shell/MainWindow.History.cs" title="Applications/FlyScan/Company.FlyScan.Shell/MainWindow.History.cs · SetupHistoryPages"><code>MainWindow.History.cs:9</code></a> <a class="ref" href="../Applications/FlyScan/Company.FlyScan.Shell/FlyHistoryPages.cs" title="Applications/FlyScan/Company.FlyScan.Shell/FlyHistoryPages.cs · internal void Query()"><code>FlyHistoryPages.cs:36</code></a> <a class="ref" href="../Applications/FlyScan/Company.FlyScan.Shell/FlyHistoryPages.cs" title="Applications/FlyScan/Company.FlyScan.Shell/FlyHistoryPages.cs · History.LiveAlarms"><code>FlyHistoryPages.cs:180</code></a> <a class="ref" href="../Framework/Company.Hmi.Presentation/RealtimeAlarmView.xaml" title="Framework/Company.Hmi.Presentation/RealtimeAlarmView.xaml · Binding VisibleItems"><code>RealtimeAlarmView.xaml:62</code></a></p>
+<h3>一次刷新原来做什么，现在做什么</h3>
+<p>旧路径每次读取整个 <code>observations</code>，重建活动和已关闭的报警、切分采集缺口，最后实时页只取仍活动的记录。新实现把活动报警保存在 <code>_activeAlarms</code>，写入成功后推进内存状态，稳定心跳扩展已知区间。启动时从最近一条在线且全部报警解除的记录开始恢复后续活动状态；缺少这样的记录时需要回放历史。<code>ApplyObservation</code> 让历史重建和实时推进使用同样的规则。</p>
+<p>以 UTC 08:00:00 的活动报警为例，连接断开前确认了两秒，08:00:08 重连后又确认了一秒，那么已确认时长为三秒，08:00:02 至 08:00:08 是这次断线缺口。缺口影响时长的可信边界。多个报警的时长可能重叠，所以累计报警时长与设备停机时长是不同指标。本版在 SQLite 采样写入失败后中断会话连续性。下一次成功采样另开区间，失败期间作为未知缺口处理。</p>
+<details><summary>展开源码片段 · FlyScanHistory.cs:193</summary><pre><code>public ScanLiveAlarmReport LiveAlarms(DateTimeOffset through)
+{
+    var online = Online;
+    var alarms = _activeAlarms.Values.Where(run =&gt; run.Start &lt;= through)
+        .OrderByDescending(run =&gt; run.Start)
+        .ThenBy(run =&gt; run.Code, StringComparer.Ordinal)
+        .Select(run =&gt; run.ToAlarm(null, run.KnownSpans.ToArray(), forceUncertain: !online))
+        .ToArray();
+    return new ScanLiveAlarmReport(alarms, online);
+}
+// …</code></pre></details>
+<p class="refs">源码定位 <a class="ref" href="../Applications/FlyScan/Company.FlyScan.Runtime/FlyScanHistory.cs" title="Applications/FlyScan/Company.FlyScan.Runtime/FlyScanHistory.cs · private void RecoverActiveAlarms"><code>FlyScanHistory.cs:66</code></a> <a class="ref" href="../Applications/FlyScan/Company.FlyScan.Runtime/FlyScanHistory.cs" title="Applications/FlyScan/Company.FlyScan.Runtime/FlyScanHistory.cs · private static void ApplyObservation"><code>FlyScanHistory.cs:232</code></a> <a class="ref" href="../Applications/FlyScan/Company.FlyScan.Runtime/FlyScanHistory.cs" title="Applications/FlyScan/Company.FlyScan.Runtime/FlyScanHistory.cs · public TimeSpan KnownDuration"><code>FlyScanHistory.cs:12</code></a> <a class="ref" href="../docs/FlyScanAlarmRefreshVerification.md" title="docs/FlyScanAlarmRefreshVerification.md · ## 报警时长与断线缺口"><code>FlyScanAlarmRefreshVerification.md:26</code></a></p>
+<h3>如何讲清优化证据</h3>
+<p>提交记录的对比基于同一份 50,000 条 SQLite 观测，两个版本各跑三轮，每轮 300 次离屏 WPF 刷新。按三轮中位值，刷新中位耗时 <strong>39.80 → 5.61 ms</strong>，P95 <strong>58.18 → 9.10 ms</strong>，UI 线程分配下降 <strong>97.6%</strong>，每轮 Gen 0/1/2 收集次数 <strong>445/168/7 → 11/5/1</strong>。2,002 条报警、1,102 个缺口、58,006 秒累计已确认时长一致。基准含查询、绑定和布局，启动恢复在计时区间外。</p>
+<p class="refs">源码定位 <a class="ref" href="../tests/SharedControlPages.Smoke/AlarmRefreshBenchmark.cs" title="tests/SharedControlPages.Smoke/AlarmRefreshBenchmark.cs · private static object MeasureAlarmRefresh"><code>AlarmRefreshBenchmark.cs:93</code></a> <a class="ref" href="../docs/FlyScanAlarmRefreshVerification.md" title="docs/FlyScanAlarmRefreshVerification.md · ## 刷新性能"><code>FlyScanAlarmRefreshVerification.md:13</code></a></p>
+<div class="callout lab"><p><strong>断点练习</strong> 在仿真勾选运动卡告警，查看 <code>Observe</code> 的输入，再切到报警监控观察 <code>LiveAlarms</code> 和 <code>VisibleItems</code>。切到历史子页，观察查询入口如何变化。继续切换仿真通讯，比较断开前后的在线状态与已确认区间。</p></div>
+<details><summary>参考答案</summary><p>实时页只有在可见时取活动投影；历史页按用户的时间窗回放持久化观测。断开后 <code>Online</code> 为假，界面出现未知语义，已确认区间依然可查。停止刷新计时器会影响显示更新，观测的持久化由采样入口决定。</p></details>
+<p class="chapter-end"><a href="#threads">下一章 · 线程分工与数据怎么交接</a></p>
+</section>
+<section class="chapter" id="threads">
+<h2>线程分工与数据怎么交接</h2>
+<p class="lead">调试时先问“这一行是在 UI 上执行，还是由后台任务调度？”，再追问“它完成后谁会接到数据？”</p>
+<div class="table-wrap"><table class="lanes"><caption>PLC HMI 一次采集后的两条路线</caption><thead><tr><th scope="col">执行位置</th><th scope="col">读设备</th><th scope="col">交接数据</th><th scope="col">使用结果</th></tr></thead><tbody>
+<tr><th scope="row">UI Dispatcher</th><td>页面显示或切换分组，登记采集需求。</td><td>收到更新通知后回到 UI，从内存快照取值。</td><td>更新 IO 列表、状态和提示。</td></tr>
+<tr><th scope="row">PLC 连接与轮询任务</th><td>维持连接和重连，按点表与当前需求发起 OPC UA 读请求。</td><td>写入快照，同时将帧或缺口送入分发队列。</td><td>按下一轮需求继续采集。设备门协调同一连接上的并发请求。</td></tr>
+<tr><th scope="row">帧消费者与历史任务</th><td>等待新帧或待提交记录。</td><td>帧分发将记录送到报警与产量消费者。本地日志的待提交数据由历史写入任务消费。</td><td>数据库确认后推进提交位置，供后续查询和恢复。</td></tr>
+</tbody></table></div>
+<p class="refs">源码定位 <a class="ref" href="../Applications/PlcHmi/Company.PlcHmi.Main/ViewModels/IoMonitorViewModel.cs" title="Applications/PlcHmi/Company.PlcHmi.Main/ViewModels/IoMonitorViewModel.cs · var dispatcher = _timer.Dispatcher"><code>IoMonitorViewModel.cs:93</code></a> <a class="ref" href="../Applications/PlcHmi/Company.PlcHmi.Plc/Connections/PlcConnectionManager.cs" title="Applications/PlcHmi/Company.PlcHmi.Plc/Connections/PlcConnectionManager.cs · device.Worker = Task.Run"><code>PlcConnectionManager.cs:51</code></a> <a class="ref" href="../Applications/PlcHmi/Company.PlcHmi.Plc/Data/PlcFrameDispatcher.cs" title="Applications/PlcHmi/Company.PlcHmi.Plc/Data/PlcFrameDispatcher.cs · Channel.CreateBounded"><code>PlcFrameDispatcher.cs:111</code></a> <a class="ref" href="../Applications/PlcHmi/Company.PlcHmi.Main/Services/History/PlcHistoryWriter.cs" title="Applications/PlcHmi/Company.PlcHmi.Main/Services/History/PlcHistoryWriter.cs · _worker=Task.Run"><code>PlcHistoryWriter.cs:32</code></a></p>
+<div class="explainer-grid">
+<article class="explainer"><h3>UI Dispatcher 上有什么</h3><p>窗口输入、命令、绑定、布局，以及由该 Dispatcher 管理的计时器回调。UI 上一次回调做得太久，后续点击和刷新就会等待。</p></article>
+<article class="explainer"><h3>FlyScan 三个计时器做什么</h3><ul><li><strong>50 ms 仿真步进</strong>，自动步进开启时推进工作流。</li><li><strong>200 ms 轴反馈刷新</strong>，安排轴参数页刷新。</li><li><strong>1 s 摘要刷新</strong>，安排实时报警、今日产量与设备摘要更新。</li></ul><p>这些间隔是应用设置。它们共享 UI 的 Dispatcher，实际调度会受当前界面负载影响。</p></article>
+<article class="explainer"><h3>Task 通常会在哪里跑</h3><p><code>Task.Run</code> 把工作排入线程池。连接、轮询、帧分发和历史写入都有长期任务，各任务经过 <code>await</code> 后可能在不同工作线程继续。看任务的职责，比记线程编号更稳定。</p></article>
+<article class="explainer"><h3>WPF 渲染与程序任务</h3><p>WPF 有自己的后台渲染机制。断点里发现额外线程时，先看调用堆栈属于 WPF、线程池还是本项目业务。报警离线基准包含绑定和离屏布局，线程章节帮助解释为何查询开销会影响界面响应。</p></article>
+</div>
+<p class="refs">源码定位 <a class="ref" href="../Applications/FlyScan/Company.FlyScan.Shell/FlyScanPage.xaml.cs" title="Applications/FlyScan/Company.FlyScan.Shell/FlyScanPage.xaml.cs · TimeSpan.FromMilliseconds(50)"><code>FlyScanPage.xaml.cs:15</code></a> <a class="ref" href="../Applications/FlyScan/Company.FlyScan.Shell/MainWindow.xaml.cs" title="Applications/FlyScan/Company.FlyScan.Shell/MainWindow.xaml.cs · _axisRefresh = new()"><code>MainWindow.xaml.cs:15</code></a> <a class="ref" href="../Applications/FlyScan/Company.FlyScan.Shell/MainWindow.xaml.cs" title="Applications/FlyScan/Company.FlyScan.Shell/MainWindow.xaml.cs · _summaryRefresh = new()"><code>MainWindow.xaml.cs:16</code></a> <a href="https://learn.microsoft.com/en-us/dotnet/desktop/wpf/advanced/threading-model">Microsoft Learn · WPF 线程模型</a></p>
+<h3>用三个断点把线程问题拆开</h3>
+<ol>
+<li>在隔离回环中，在 <code>PlcPollingScheduler</code> 读取前和 IO ViewModel 的 Dispatcher 回调里下断点。比较调用堆栈和 <code>Environment.CurrentManagedThreadId</code>，看一次采样如何跨过后台与界面。</li>
+<li>在 FlyScan 仿真中，在<strong>步进回调</strong>和<strong>摘要刷新回调</strong>里查看 <code>Dispatcher.CheckAccess()</code>。可以观察两项不同用途的工作都由界面线程调度。</li>
+<li>在历史写入器中观察待提交记录，再回到 UI 看数据库与快照的来源。界面有新值时，历史入库任务可能仍在处理早前记录。</li>
+</ol>
+<details><summary>排查时怎样区分四类卡顿</summary><ul><li>窗口点不动，先看 UI 调用栈是否被查询、布局或同步等待占住。</li><li>只有 PLC 值不动，先看连接代次、数据质量、采集需求和设备门。</li><li>实时数据有更新，历史列表偏旧，先核对待提交日志和数据库的最后确认位置。</li><li>FlyScan 自动步进不动，先看页面上的自动步进开关、工作流阶段和中断原因。</li></ul></details>
 <p class="chapter-end"><a href="#data">下一章 · 数据库 · 账户、PLC 历史和 FlyScan 本地记录</a></p>
 </section>
 <section class="chapter" id="data">
@@ -362,7 +672,7 @@ dotnet run --project tests/FlyScan.Workflow.Smoke/FlyScan.Workflow.Smoke.csproj<
 <details><summary>参考答案</summary><p>先测数据查询和对象分配，再测通知与布局，最后确定渲染或设备 I/O 是否影响观察值。CPU 时间与实际等待时间分开看，避免把所有卡顿归给 GC。读秒表结果时保留数据量、启动条件和计时边界。</p></details>
 <p class="chapter-end"><a href="#verify">下一章 · 验证、调试与发布</a></p>
 </section>
-
+<header class="part-banner" id="part-reference"><h2>附录 · 调试、验收与复习</h2><p>需要实际定位故障、复跑测试或整理招聘要求时，从这里查入口。</p></header>
 <section class="chapter" id="verify">
 <h2>验证、调试与发布</h2>
 <p>这个仓库有可直接执行的 Smoke 测试、离线重放和发布包验收。调试先从能稳定复现的最小入口开始，再扩大到真正的 WPF 页面和安装包。输入脚本与仿真时钟有助于复现短暂的时序问题。</p>
@@ -416,30 +726,6 @@ python tools/verify_release_candidates.py --help</code></pre>
 </tbody></table></div>
 <p>表内数字分别是子套件的断言或测试数量。29 是统一入口记录的检查项总数。</p>
 <p class="refs">验收与示例 <a class="ref" href="../docs/HmiFlyScanAcceptance.md" title="docs/HmiFlyScanAcceptance.md · ## 2026-11-27 提交前复跑"><code>HmiFlyScanAcceptance.md:7</code></a> <a href="https://github.com/doudounianya/Prism/blob/7cb806d5dd718d4209b0531273f8f6c2163b3df5/docs/HmiFlyScanAcceptance.md">在 GitHub 查看验收记录</a> <a href="https://github.com/doudounianya/Prism/blob/7cb806d5dd718d4209b0531273f8f6c2163b3df5/examples/Motion/TwoAxis.Simulation.json">在 GitHub 查看两轴示例</a></p>
-<p class="chapter-end"><a href="#hiring">下一章 · 招聘要求与项目证据</a></p>
-</section>
-
-<section class="chapter" id="hiring">
-<h2>招聘要求与项目证据</h2>
-<p>把招聘条款当成一张能力地图。每行都可以按「解释概念 → 在本仓库举例 → 用测试证明 → 说明证据边界」准备。工作年限属于个人经历，代码能展示技术能力和工程习惯。</p>
-<div class="table-wrap"><table><thead><tr><th>招聘条款</th><th>覆盖与项目证据</th><th>如何检验自己掌握了</th></tr></thead><tbody>
-<tr><td>C# 泛型、LINQ、委托和事件</td><td><span class="pill">有直接用例</span> <code>SimulationJson.Read&lt;T&gt;</code>、报警排名的 LINQ、<code>PropertyChanged</code> 和页面回调。</td><td>解释 <code>ToArray</code> 放在何处影响重复枚举，说明 <code>with</code> 为什么可能共享引用成员。</td></tr>
-<tr><td>反射、异步 <code>async/await</code></td><td><span class="pill">有直接用例</span> 服务装配扫描、<code>PlcWriteService.ExecuteAsync</code>、生命周期的异步任务编排。</td><td>从特性筛到注册，解释为什么 await 不能消除 CPU 工作、什么时候必须回 UI 线程。</td></tr>
-<tr><td>EF Core / SqlSugar 等 ORM</td><td><span class="pill">SqlSugar 有实用链路</span> 账户仓库、历史仓库、参数化查询与事务。项目证据可用 SqlSugar 作答，EF Core 可用于补充学习。</td><td>解释会话的所有权、ORM 查询转 SQL、什么时候使用直接 SQL，如何读查询计划。</td></tr>
-<tr><td>内存管理、GC 调优、热路径</td><td><span class="pill partial">有实测与代码优化</span> 实时报警基准和分配优化覆盖热路径与代际收集计数。运行时 GC 参数调优和 GPU 渲染分析可另做专项练习。</td><td>区分 P95、分配速率、驻留内存和停顿时间，复跑 A/B 并核对行为一致。</td></tr>
-<tr><td>DI、AOP</td><td><span class="pill partial">DI 直接覆盖</span> Prism/DryIoc 组合模块与接口注册。权限、审计等横切逻辑可见显式服务调用。测试中的 <code>DispatchProxy</code> 是替身例子，业务 AOP 拦截器需要单独找证据。</td><td>说明构造注入、注册与反射各自的角色。练习对比装饰器、动态代理和显式服务调用的调用栈。</td></tr>
-<tr><td>多线程、TPL、线程安全</td><td><span class="pill">有直接用例</span> 设备轮询任务、并发汇合、设备门、帧队列、授权版本以及退出时共享任务。</td><td>画出两个调用方并发停止的时序，解释谁拥有 CancellationToken、谁修改共享状态。</td></tr>
-<tr><td>.NET 5+ 与 CLR</td><td><span class="pill partial">运行于 .NET 8</span> 可用 P/Invoke、托管对象分配和反射讲原理。JIT、GC 根、装载上下文及性能诊断要结合原理和工具深入。</td><td>从程序集讲到 JIT、托管/原生边界和 Dispose，能说明 CPU 采样、分配追踪各回答什么。</td></tr>
-<tr><td>WPF、MVVM、Prism</td><td><span class="pill">有直接用例</span> 双产品共用页面、Region 导航、ViewModel 通知、模块注册、命令及窗口生命周期。</td><td>从任意一个控件定位绑定路径、运行时 DataContext 和对应产品的实现。</td></tr>
-<tr><td>XAML 高级特性、动画</td><td><span class="pill partial">绑定、模板、样式充分</span> 共享样式字典和控件/数据模板有源码证据。可用小练习补充 Storyboard 和状态动画。</td><td>解释 Style Setter、ControlTemplate 与 DataTemplate。观察一次模板展开后的可视树。</td></tr>
-<tr><td>复杂控件、DependencyProperty</td><td><span class="pill">有直接用例</span> 模式状态图、附加按持行为、路由事件及绑定代理。</td><td>解释值从哪里来、变化回调在哪执行、捕获丢失后为什么还要释放。</td></tr>
-<tr><td>WPF 性能、虚拟化、硬件加速</td><td><span class="pill partial">虚拟化与刷新有证据</span> DataGrid 回收、可见性门控、离屏布局基准。GPU 渲染层级和实屏帧性能需另外实测。</td><td>分开读 UI 容器与数据加载，识别禁用虚拟化的布局条件和实际帧的测量范围。</td></tr>
-<tr><td>关系型与非关系型数据库</td><td><span class="pill partial">关系型直接覆盖</span> MySQL、SQLite、账户层的 SQL Server 适配。当前检视范围内未找到独立 NoSQL 数据库接入。</td><td>解释唯一键与事务持久化、日志重放和关系查询。另用一个小项目练习文档建模或键值缓存。</td></tr>
-</tbody></table></div>
-<p class="refs">代表性证据 <a class="ref" href="../Framework/Company.Desktop/Extension/DependencyExtension.cs" title="Framework/Company.Desktop/Extension/DependencyExtension.cs · assembly.GetTypes"><code>DependencyExtension.cs:19</code></a> <a class="ref" href="../Framework/Company.Database.SqlSugar/Accounts/UserAccountRepository.cs" title="Framework/Company.Database.SqlSugar/Accounts/UserAccountRepository.cs · Queryable&lt;UserAccount&gt;"><code>UserAccountRepository.cs:21</code></a> <a class="ref" href="../tests/Runtime.Smoke/Program.cs" title="tests/Runtime.Smoke/Program.cs · DispatchProxy.Create"><code>Program.cs:223</code></a> <a class="ref" href="../Framework/Company.Hmi.Presentation/ModeStateDiagram.cs" title="Framework/Company.Hmi.Presentation/ModeStateDiagram.cs · KindProperty"><code>ModeStateDiagram.cs:21</code></a> <a class="ref" href="../Framework/Company.Hmi.Presentation/RealtimeAlarmView.xaml" title="Framework/Company.Hmi.Presentation/RealtimeAlarmView.xaml · VirtualizationMode"><code>RealtimeAlarmView.xaml:62</code></a> <a class="ref" href="../docs/FlyScanAlarmRefreshVerification.md" title="docs/FlyScanAlarmRefreshVerification.md · ## 测量方法"><code>FlyScanAlarmRefreshVerification.md:5</code></a></p>
-<details><summary>面试演练 · 两分钟讲清实时报警优化</summary><p>先说现象和原路径，再说测量。原来实时页每次重放历史，有大量 SQLite 读取和临时对象。改成观测写入成功后推进活动报警，查询只取当前投影。用同一批历史、相同刷新次数和隔离进程比较耗时、P95、分配和 GC。再报报警时长、缺口、断线与重启的正确性，并交代基准的离屏条件和启动恢复计时边界。</p></details>
-<details><summary>面试演练 · CanExecute 能否作为权限判断的唯一入口？</summary><p>界面用它及时反映操作是否可用；执行入口还要看请求准入、排队期间发生的用户变化和连接内的最终条件。用 PLC 的 <code>PlcWriteService</code> 与 <code>PlcOperationPolicy</code> 举例，最后说明怎样在回环里复现并核对拒绝结果。</p></details>
-<details><summary>面试演练 · 同一个界面为什么能给两套软件用？</summary><p>共享视图所需的数据由 HMI 契约描述，PLC 和 FlyScan 分别提供导航、反馈和执行逻辑。设计时分别保证界面只处理展示和意图，业务状态、采集、驱动和授权靠各自应用提供。可以沿 IO 页带面试官从绑定追到两个实现。</p></details>
 <p class="chapter-end"><a href="#practice">下一章 · 独立维护的学习验收</a></p>
 </section>
 <section class="chapter" id="practice">
@@ -463,6 +749,29 @@ python tools/verify_release_candidates.py --help</code></pre>
 <tr><td>某运动卡具备专属功能</td><td>能力描述、厂商适配与应用准入</td><td>支持、未支持和未确认的条件分别测试，现场验证另记证据</td></tr>
 <tr><td>历史查询慢或计数异常</td><td>时间口径、仓库查询、索引、采集和事务检查点</td><td>固定输入比较耗时与分配，验证边界与失败重试</td></tr>
 </tbody></table></div>
+<p class="chapter-end"><a href="#hiring">下一章 · 招聘要求与项目证据</a></p>
+</section>
+<section class="chapter" id="hiring">
+<h2>招聘要求与项目证据</h2>
+<p>把招聘条款当成一张能力地图。每行都可以按「解释概念 → 在本仓库举例 → 用测试证明 → 说明证据边界」准备。工作年限属于个人经历，代码能展示技术能力和工程习惯。</p>
+<div class="table-wrap"><table><thead><tr><th>招聘条款</th><th>覆盖与项目证据</th><th>如何检验自己掌握了</th></tr></thead><tbody>
+<tr><td>C# 泛型、LINQ、委托和事件</td><td><span class="pill">有直接用例</span> <code>SimulationJson.Read&lt;T&gt;</code>、报警排名的 LINQ、<code>PropertyChanged</code> 和页面回调。</td><td>解释 <code>ToArray</code> 放在何处影响重复枚举，说明 <code>with</code> 为什么可能共享引用成员。</td></tr>
+<tr><td>反射、异步 <code>async/await</code></td><td><span class="pill">有直接用例</span> 服务装配扫描、<code>PlcWriteService.ExecuteAsync</code>、生命周期的异步任务编排。</td><td>从特性筛到注册，解释为什么 await 不能消除 CPU 工作、什么时候必须回 UI 线程。</td></tr>
+<tr><td>EF Core / SqlSugar 等 ORM</td><td><span class="pill">SqlSugar 有实用链路</span> 账户仓库、历史仓库、参数化查询与事务。项目证据可用 SqlSugar 作答，EF Core 可用于补充学习。</td><td>解释会话的所有权、ORM 查询转 SQL、什么时候使用直接 SQL，如何读查询计划。</td></tr>
+<tr><td>内存管理、GC 调优、热路径</td><td><span class="pill partial">有实测与代码优化</span> 实时报警基准和分配优化覆盖热路径与代际收集计数。运行时 GC 参数调优和 GPU 渲染分析可另做专项练习。</td><td>区分 P95、分配速率、驻留内存和停顿时间，复跑 A/B 并核对行为一致。</td></tr>
+<tr><td>DI、AOP</td><td><span class="pill partial">DI 直接覆盖</span> Prism/DryIoc 组合模块与接口注册。权限、审计等横切逻辑可见显式服务调用。测试中的 <code>DispatchProxy</code> 是替身例子，业务 AOP 拦截器需要单独找证据。</td><td>说明构造注入、注册与反射各自的角色。练习对比装饰器、动态代理和显式服务调用的调用栈。</td></tr>
+<tr><td>多线程、TPL、线程安全</td><td><span class="pill">有直接用例</span> 设备轮询任务、并发汇合、设备门、帧队列、授权版本以及退出时共享任务。</td><td>画出两个调用方并发停止的时序，解释谁拥有 CancellationToken、谁修改共享状态。</td></tr>
+<tr><td>.NET 5+ 与 CLR</td><td><span class="pill partial">运行于 .NET 8</span> 可用 P/Invoke、托管对象分配和反射讲原理。JIT、GC 根、装载上下文及性能诊断要结合原理和工具深入。</td><td>从程序集讲到 JIT、托管/原生边界和 Dispose，能说明 CPU 采样、分配追踪各回答什么。</td></tr>
+<tr><td>WPF、MVVM、Prism</td><td><span class="pill">有直接用例</span> 双产品共用页面、Region 导航、ViewModel 通知、模块注册、命令及窗口生命周期。</td><td>从任意一个控件定位绑定路径、运行时 DataContext 和对应产品的实现。</td></tr>
+<tr><td>XAML 高级特性、动画</td><td><span class="pill partial">绑定、模板、样式充分</span> 共享样式字典和控件/数据模板有源码证据。可用小练习补充 Storyboard 和状态动画。</td><td>解释 Style Setter、ControlTemplate 与 DataTemplate。观察一次模板展开后的可视树。</td></tr>
+<tr><td>复杂控件、DependencyProperty</td><td><span class="pill">有直接用例</span> 模式状态图、附加按持行为、路由事件及绑定代理。</td><td>解释值从哪里来、变化回调在哪执行、捕获丢失后为什么还要释放。</td></tr>
+<tr><td>WPF 性能、虚拟化、硬件加速</td><td><span class="pill partial">虚拟化与刷新有证据</span> DataGrid 回收、可见性门控、离屏布局基准。GPU 渲染层级和实屏帧性能需另外实测。</td><td>分开读 UI 容器与数据加载，识别禁用虚拟化的布局条件和实际帧的测量范围。</td></tr>
+<tr><td>关系型与非关系型数据库</td><td><span class="pill partial">关系型直接覆盖</span> MySQL、SQLite、账户层的 SQL Server 适配。当前检视范围内未找到独立 NoSQL 数据库接入。</td><td>解释唯一键与事务持久化、日志重放和关系查询。另用一个小项目练习文档建模或键值缓存。</td></tr>
+</tbody></table></div>
+<p class="refs">代表性证据 <a class="ref" href="../Framework/Company.Desktop/Extension/DependencyExtension.cs" title="Framework/Company.Desktop/Extension/DependencyExtension.cs · assembly.GetTypes"><code>DependencyExtension.cs:19</code></a> <a class="ref" href="../Framework/Company.Database.SqlSugar/Accounts/UserAccountRepository.cs" title="Framework/Company.Database.SqlSugar/Accounts/UserAccountRepository.cs · Queryable&lt;UserAccount&gt;"><code>UserAccountRepository.cs:21</code></a> <a class="ref" href="../tests/Runtime.Smoke/Program.cs" title="tests/Runtime.Smoke/Program.cs · DispatchProxy.Create"><code>Program.cs:223</code></a> <a class="ref" href="../Framework/Company.Hmi.Presentation/ModeStateDiagram.cs" title="Framework/Company.Hmi.Presentation/ModeStateDiagram.cs · KindProperty"><code>ModeStateDiagram.cs:21</code></a> <a class="ref" href="../Framework/Company.Hmi.Presentation/RealtimeAlarmView.xaml" title="Framework/Company.Hmi.Presentation/RealtimeAlarmView.xaml · VirtualizationMode"><code>RealtimeAlarmView.xaml:62</code></a> <a class="ref" href="../docs/FlyScanAlarmRefreshVerification.md" title="docs/FlyScanAlarmRefreshVerification.md · ## 测量方法"><code>FlyScanAlarmRefreshVerification.md:5</code></a></p>
+<details><summary>面试演练 · 两分钟讲清实时报警优化</summary><p>先说现象和原路径，再说测量。原来实时页每次重放历史，有大量 SQLite 读取和临时对象。改成观测写入成功后推进活动报警，查询只取当前投影。用同一批历史、相同刷新次数和隔离进程比较耗时、P95、分配和 GC。再报报警时长、缺口、断线与重启的正确性，并交代基准的离屏条件和启动恢复计时边界。</p></details>
+<details><summary>面试演练 · CanExecute 能否作为权限判断的唯一入口？</summary><p>界面用它及时反映操作是否可用；执行入口还要看请求准入、排队期间发生的用户变化和连接内的最终条件。用 PLC 的 <code>PlcWriteService</code> 与 <code>PlcOperationPolicy</code> 举例，最后说明怎样在回环里复现并核对拒绝结果。</p></details>
+<details><summary>面试演练 · 同一个界面为什么能给两套软件用？</summary><p>共享视图所需的数据由 HMI 契约描述，PLC 和 FlyScan 分别提供导航、反馈和执行逻辑。设计时分别保证界面只处理展示和意图，业务状态、采集、驱动和授权靠各自应用提供。可以沿 IO 页带面试官从绑定追到两个实现。</p></details>
 <p class="chapter-end"><a href="#reference">下一章 · 术语速查与继续阅读</a></p>
 </section>
 <section class="chapter" id="reference">
@@ -535,6 +844,66 @@ python tools/verify_release_candidates.py --help</code></pre>
   window.addEventListener('hashchange', markLocation);
   markLocation();
 })();
+</script>
+<script>
+
+(() => {
+  const controls = document.getElementById('run-controls');
+  const select = document.getElementById('run-route');
+  const track = document.getElementById('run-track');
+  const card = document.getElementById('run-card');
+  const status = document.getElementById('run-state');
+  const previous = document.getElementById('run-prev');
+  const next = document.getElementById('run-next');
+  const routes = new Map(Array.from(document.querySelectorAll('#run-guides [data-route]'),
+    guide => [guide.dataset.route, Array.from(guide.querySelectorAll('.run-source > li'))]));
+  let steps = [];
+  let current = 0;
+
+  function renderStep(index) {
+    current = index;
+    const step = steps[current];
+    const lane = document.createElement('p');
+    lane.className = 'run-lane';
+    lane.textContent = step.dataset.lane;
+    card.replaceChildren(lane, ...Array.from(step.children, child => child.cloneNode(true)));
+    status.textContent = '第 ' + (current + 1) + ' 步，共 ' + steps.length + ' 步。' + step.querySelector('h4').textContent;
+    track.querySelectorAll('button').forEach((button, n) => {
+      if (n === current) button.setAttribute('aria-current', 'step');
+      else button.removeAttribute('aria-current');
+    });
+    previous.disabled = current === 0;
+    next.disabled = current === steps.length - 1;
+  }
+
+  function chooseRoute() {
+    steps = routes.get(select.value);
+    track.replaceChildren();
+    steps.forEach((step, index) => {
+      const item = document.createElement('li');
+      const button = document.createElement('button');
+      const number = document.createElement('span');
+      button.type = 'button';
+      number.className = 'step-number';
+      number.textContent = index + 1;
+      button.append(number, step.querySelector('h4').textContent);
+      button.addEventListener('click', () => renderStep(index));
+      item.append(button);
+      track.append(item);
+    });
+    renderStep(0);
+  }
+
+  select.addEventListener('change', chooseRoute);
+  previous.addEventListener('click', () => renderStep(Math.max(0, current - 1)));
+  next.addEventListener('click', () => renderStep(Math.min(steps.length - 1, current + 1)));
+  document.getElementById('run-reset').addEventListener('click', () => renderStep(0));
+  chooseRoute();
+  document.getElementById('run-guides').hidden = true;
+  controls.hidden = false;
+  document.getElementById('runner-panel').hidden = false;
+})();
+
 </script>
 </body>
 </html>
