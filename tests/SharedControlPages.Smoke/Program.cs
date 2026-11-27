@@ -2,6 +2,7 @@ using Company.FlyScan.Runtime;
 using Company.Hardware.ControlCard;
 using Company.Hmi.Presentation;
 using Company.Platform.Shared.Login;
+using Microsoft.Data.Sqlite;
 using System.IO;
 using System.Windows;
 using System.Windows.Automation.Peers;
@@ -20,13 +21,33 @@ internal static partial class Program
         Console.OutputEncoding = System.Text.Encoding.UTF8;
         if (args.FirstOrDefault() is "--alarm-refresh-seed" or "--alarm-refresh-benchmark")
             return RunAlarmRefreshBenchmark(args);
-        var journal = Path.Combine(Path.GetTempPath(), $"flyscan-wpf-{Guid.NewGuid():N}", "run.json");
+        bool packaged = args is ["--package-recovery", "checkpoint" or "resume" or "reopen" or "rollback-preview", _];
+        bool historyReplay = args is ["--package-history", "seed" or "reopen", _];
+        if (args.FirstOrDefault() == "--package-recovery" && !packaged) return 2;
+        if (args.FirstOrDefault() == "--package-history" && !historyReplay) return 2;
+        var data = packaged || historyReplay ? Path.GetFullPath(args[2]) : Path.Combine(Path.GetTempPath(), $"flyscan-wpf-{Guid.NewGuid():N}");
+        var journal = Path.Combine(data, "run.json");
+        if (packaged && !CheckPackageRecoveryInputs(args[1], data, journal)) return 2;
+        if (historyReplay)
+        {
+            if (!CheckPackageHistoryInputs(args[1], data)) return 2;
+            if (args[1] == "seed")
+            {
+                SeedPackageHistory(data);
+                return 0;
+            }
+        }
         var app = new Company.FlyScan.Shell.App { SimulationJournalPath = journal };
         app.Startup += (_, _) => app.Dispatcher.InvokeAsync(async () =>
         {
             try
             {
-                await Verify(app.MainWindow!, args.FirstOrDefault());
+                if (packaged)
+                    await VerifyPackageRecovery(app.MainWindow!, args[1], journal);
+                else if (historyReplay)
+                    await VerifyPackageHistory(app.MainWindow!, data);
+                else
+                    await Verify(app.MainWindow!, args.FirstOrDefault(), journal);
                 app.Shutdown();
             }
             catch (Exception error)
@@ -38,7 +59,7 @@ internal static partial class Program
         return app.Run();
     }
 
-    private static async Task Verify(Window window, string? evidence)
+    private static async Task Verify(Window window, string? evidence, string journal)
     {
         T Named<T>(string name) where T : FrameworkElement => (T)window.FindName(name);
         Check(typeof(Company.FlyScan.Shell.App).Assembly.EntryPoint?.DeclaringType?.FullName == "Company.Shell.Program",
@@ -236,13 +257,60 @@ internal static partial class Program
         Click(scan, "开始双组扫描");
         await Idle();
         Check(modeModel.Display.Status == 50, "WPF workflow publishes running feedback to the shared mode page");
-        for (int i = 0; i < 30 && !Scan<TextBlock>("Handshake").Text.Contains("触发使能 ON", StringComparison.Ordinal); i++)
-        {
-            Click(scan, "单步");
-            await Idle();
-        }
+        Click(scan, "单步");
+        await Idle();
+        await Open("IoTab");
+        var io = (SimulatedIoMonitor)window.DataContext;
+        io.SelectedSignalType = "DI";
+        Check(io.Items[0] is { DisplayName: "上料确认", Value: true },
+            "WPF retains the last sampled load acknowledgement after the workflow consumes it");
+        io.SelectedSignalType = "DO";
+        Check(io.Items[0] is { DisplayName: "上料请求", Value: false },
+            "WPF load request turns off independently of the sampled acknowledgement");
+        await Open("FlyScanTab");
+        await ReachArmedScan();
         Check(Scan<TextBlock>("Handshake").Text.Contains("保持请求 ON", StringComparison.Ordinal),
             "WPF sim shows robot hold while acquiring the first group");
+
+        await Open("IoTab");
+        io.SelectedSignalType = "DO";
+        await Idle();
+        Check(io.Items[1] is { DisplayName: "机器人示教位请求", Value: true } &&
+            io.Items[2] is { DisplayName: "机器人保持请求", Value: true },
+            "WPF IO monitor displays the workcell's current robot request and hold output");
+        Click(window, "模拟断开");
+        await Wait(() => io.Items.All(item => item.Value is null) && modeModel.ConfirmedState is null &&
+            Scan<CheckBox>("ConnectedSignal").IsChecked == false && !Scan<Button>("StepButton").IsEnabled,
+            "WPF primary IO disconnect interrupts a live scan and invalidates mode and IO feedback");
+        Check(Scan<Button>("RecoverButton").IsEnabled &&
+            Scan<TextBlock>("Handshake").Text.Contains("触发使能 OFF", StringComparison.Ordinal) &&
+            Scan<TextBlock>("Handshake").Text.Contains("视觉 Ready 未知", StringComparison.Ordinal),
+            "WPF disconnected scan withdraws trigger and displays unknown Ready");
+        Click(window, "模拟重连");
+        await Wait(() => io.Items[2].Value == false && io.Items[1].Value == false,
+            "WPF reconnect samples current outputs without replaying the pre-disconnect robot request");
+        await Open("FlyScanTab");
+        Check(Scan<Button>("RecoverButton").IsEnabled && !Scan<Button>("StepButton").IsEnabled,
+            "WPF reconnect still requires explicit recovery");
+        Click(scan, "确认恢复");
+        await Wait(() => Scan<Button>("StepButton").IsEnabled, "WPF recovery starts only after the restored connection is confirmed");
+        await ReachArmedScan();
+
+        await Feedback(0, 30);
+        Check(Scan<Button>("RecoverButton").IsEnabled && !Scan<Button>("StepButton").IsEnabled &&
+            Scan<TextBlock>("Handshake").Text.Contains("触发使能 OFF", StringComparison.Ordinal) &&
+            Scan<TextBlock>("Handshake").Text.Contains("保持请求 OFF", StringComparison.Ordinal),
+            "WPF switching to manual debug during a scan drops the trigger and robot hold before handing off the axes");
+        await Open("AxisTab");
+        Check(axis.CanOperate && axis.ActualVelocity.Value == "0",
+            "WPF manual controls become available with stationary feedback after scan cleanup");
+        await Feedback(20, 0);
+        await Open("FlyScanTab");
+        Check(Scan<Button>("RecoverButton").IsEnabled && !Scan<Button>("StepButton").IsEnabled,
+            "WPF returning to automatic leaves the old workpiece waiting for explicit recovery");
+        Click(scan, "确认恢复");
+        await Wait(() => Scan<Button>("StepButton").IsEnabled, "WPF explicit recovery reacquires the axes in automatic mode");
+        await ReachArmedScan();
 
         var ready = Scan<CheckBox>("ReadySignal");
         ready.IsChecked = false;
@@ -256,15 +324,62 @@ internal static partial class Program
         ready.RaiseEvent(new RoutedEventArgs(ButtonBase.ClickEvent, ready));
         Click(scan, "确认恢复");
         await Idle();
-        for (int i = 0; i < 80 && Scan<Button>("StepButton").IsEnabled; i++)
+        var production = Named<ProductionTodayView>("TodayPage");
+        using (var database = new SqliteConnection(new SqliteConnectionStringBuilder
         {
-            Click(scan, "单步");
-            await Idle();
+            DataSource = Path.Combine(Path.GetDirectoryName(journal)!, "history.sqlite")
+        }.ToString()))
+        {
+            database.Open();
+            using var failure = database.CreateCommand();
+            failure.CommandText = """
+                CREATE TRIGGER fixture_wpf_completion_failure BEFORE INSERT ON operations WHEN NEW.action='工件完成'
+                BEGIN
+                    SELECT RAISE(ABORT,'fixture WPF completion failed');
+                END;
+                """;
+            failure.ExecuteNonQuery();
+            try
+            {
+                for (int i = 0; i < 80 && Scan<Button>("StepButton").IsEnabled; i++)
+                {
+                    Click(scan, "单步");
+                    await Idle();
+                }
+                Check(Scan<TextBlock>("RunCounts").Text.Contains("累计工件 1", StringComparison.Ordinal) &&
+                    Scan<TextBlock>("RunCounts").Text.Contains("累计组 2", StringComparison.Ordinal) && modeModel.Display.Status == 0,
+                    "WPF explicit recovery completes two groups and returns shared mode to stopped");
+                Check(Scan<TextBlock>("RunStatus").Text.Contains("历史写入异常", StringComparison.Ordinal),
+                    "WPF shows the pending history write after the durable workpiece completion");
+                await Open("ProductionTab");
+                Check(!HasProductionPiece(), "WPF production page waits for the SQLite transaction before counting the piece");
+            }
+            finally
+            {
+                failure.CommandText = "DROP TRIGGER fixture_wpf_completion_failure;";
+                failure.ExecuteNonQuery();
+            }
         }
-        Check(Scan<TextBlock>("RunCounts").Text.Contains("累计工件 1", StringComparison.Ordinal) &&
-            Scan<TextBlock>("RunCounts").Text.Contains("累计组 2", StringComparison.Ordinal) && modeModel.Display.Status == 0,
-            "WPF explicit recovery completes two groups and returns shared mode to stopped");
+        await Wait(HasProductionPiece, "WPF idle retry updates the visible production page without starting another workpiece", attempts: 240);
+        await Open("FlyScanTab");
+        Check(!Scan<TextBlock>("RunStatus").Text.Contains("历史写入异常", StringComparison.Ordinal) &&
+            !Scan<Button>("StepButton").IsEnabled && Scan<CheckBox>("AutoStep").IsChecked == false,
+            "WPF clears the history error and keeps the machine stopped with automatic stepping disabled");
         Capture(window, evidence, "fly-completed");
+
+        async Task ReachArmedScan()
+        {
+            for (int i = 0; i < 30 && !Scan<TextBlock>("Handshake").Text.Contains("触发使能 ON", StringComparison.Ordinal); i++)
+            {
+                Click(scan, "单步");
+                await Idle();
+            }
+            Check(Scan<TextBlock>("Handshake").Text.Contains("触发使能 ON", StringComparison.Ordinal),
+                "WPF motion reaches the armed scan after valid feedback");
+        }
+
+        bool HasProductionPiece() => Walk<DataGrid>(production).SelectMany(table => table.Items.Cast<object>())
+            .Count(row => Field(row, "Quantity") == "1") == 1;
 
         Check(pages.Items.Cast<TabItem>().Select(tab => tab.Header?.ToString()).SequenceEqual(new[]
         {
@@ -284,6 +399,36 @@ internal static partial class Program
         var realtime = Named<RealtimeAlarmView>("RealtimePage");
         await Wait(() => Table(realtime).Items.Cast<object>().Any(row => Field(row, "StateText") == "活动"),
             "G4 shared real-time alarm reads the active motion-card signal");
+        using (var database = new SqliteConnection(new SqliteConnectionStringBuilder
+        {
+            DataSource = Path.Combine(Path.GetDirectoryName(journal)!, "history.sqlite")
+        }.ToString()))
+        {
+            database.Open();
+            using var failure = database.CreateCommand();
+            failure.CommandText = """
+                CREATE TRIGGER fixture_wpf_observation_failure BEFORE INSERT ON observations
+                BEGIN
+                    SELECT RAISE(ABORT,'fixture WPF observation write failed');
+                END;
+                """;
+            failure.ExecuteNonQuery();
+            try
+            {
+                Signal("AlarmSignal", false);
+                await Wait(() => Scan<CheckBox>("ConnectedSignal").IsChecked == true &&
+                    Table(realtime).Items.Cast<object>().Count(row => Field(row, "StateText") == "未知") == 2,
+                    "G4 real-time alarm shows an observation write failure as unknown while the card remains connected");
+            }
+            finally
+            {
+                failure.CommandText = "DROP TRIGGER fixture_wpf_observation_failure";
+                failure.ExecuteNonQuery();
+            }
+        }
+        Signal("AlarmSignal", true);
+        await Wait(() => Table(realtime).Items.Cast<object>().Any(row => Field(row, "StateText") == "活动"),
+            "G4 real-time alarm resumes on the next persisted observation without changing the card connection");
         Signal("ConnectedSignal", false);
         await Wait(() => Table(realtime).Items.Cast<object>().Count(row => Field(row, "StateText") == "未知") == 2,
             "G4 shared real-time alarm distinguishes both unknown signals after disconnect");
@@ -342,9 +487,9 @@ internal static partial class Program
     }
 
     private static async Task Idle() => await Dispatcher.Yield(DispatcherPriority.ApplicationIdle);
-    private static async Task Wait(Func<bool> condition, string check)
+    private static async Task Wait(Func<bool> condition, string check, int attempts = 100)
     {
-        for (int n = 0; n < 100 && !condition(); n++) await Task.Delay(25);
+        for (int n = 0; n < attempts && !condition(); n++) await Task.Delay(25);
         Check(condition(), check);
     }
 

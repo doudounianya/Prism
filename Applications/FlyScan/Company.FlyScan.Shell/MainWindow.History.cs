@@ -10,9 +10,9 @@ public partial class MainWindow
     {
         var live = new FlyAlarmPage(history, live: true);
         var alarmHistory = new FlyAlarmPage(history);
-        var analysis = new FlyAlarmPage(history, openHistory: code =>
+        var analysis = new FlyAlarmPage(history, openHistory: selection =>
         {
-            alarmHistory.Filter.Keyword = code;
+            alarmHistory.Filter.Apply(selection);
             AlarmPages.SelectedItem = AlarmHistoryTab;
         });
         var today = new FlyProductionPage(history, ProductionPageKind.Today);

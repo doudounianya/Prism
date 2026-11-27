@@ -1,0 +1,6 @@
+{
+  "DiBefore": [true, false, true, false, false, false],
+  "DoBefore": [true, false, false, false, false],
+  "DiAfter": [false, true, false, false, false, false],
+  "DoAfter": [false, false, true, false, false]
+}

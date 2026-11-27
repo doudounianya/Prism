@@ -80,12 +80,25 @@ internal sealed class AlarmHistoryFilter
     public IReadOnlyList<string> Severities { get; } = ["故障", "急停"];
     public IReadOnlyList<int> PageSizes { get; } = [25, 50, 100];
     public int PageSize { get; set; } = 50;
+
+    internal void Apply(AlarmHistorySelection selection)
+    {
+        FromDate = selection.From.LocalDateTime.Date;
+        FromTime = selection.From.LocalDateTime.ToString("HH:mm:ss", CultureInfo.InvariantCulture);
+        ToDate = selection.To.LocalDateTime.Date;
+        ToTime = selection.To.LocalDateTime.ToString("HH:mm:ss", CultureInfo.InvariantCulture);
+        Severity = selection.Severity;
+        Keyword = selection.Code;
+    }
 }
+
+internal sealed record AlarmHistorySelection(DateTimeOffset From, DateTimeOffset To, string Severity, string Code);
 
 internal sealed class FlyAlarmPage : HistoryPage
 {
     private readonly bool _live;
-    private readonly Action<string>? _openHistory;
+    private readonly Action<AlarmHistorySelection>? _openHistory;
+    private (DateTimeOffset From, DateTimeOffset To, string Severity)? _applied;
     private AlarmRow[] _rows = [];
     private int _page;
     private object? _selected;
@@ -118,7 +131,7 @@ internal sealed class FlyAlarmPage : HistoryPage
     public ICommand NextCommand { get; }
     public ICommand OpenHistoryCommand { get; }
     public ICommand SelectRankingCommand { get; }
-    public bool CanOpenHistory => _selected is AlarmRanking;
+    public bool CanOpenHistory => Visible && _applied is not null && _selected is AlarmRanking;
     public AlarmRow? SelectedRow
     {
         get => _selected as AlarmRow;
@@ -144,7 +157,7 @@ internal sealed class FlyAlarmPage : HistoryPage
     public string DetailSummary => SelectedRow?.BoundarySource ?? "";
     public IReadOnlyList<string> Segments => SelectedRow?.Segments ?? [];
 
-    internal FlyAlarmPage(FlyScanHistory history, bool live = false, Action<string>? openHistory = null) : base(history)
+    internal FlyAlarmPage(FlyScanHistory history, bool live = false, Action<AlarmHistorySelection>? openHistory = null) : base(history)
     {
         _live = live;
         _openHistory = openHistory;
@@ -154,7 +167,8 @@ internal sealed class FlyAlarmPage : HistoryPage
         SelectRankingCommand = new DelegateCommand<object>(item => SelectedItem = item);
         OpenHistoryCommand = new DelegateCommand(() =>
         {
-            if (SelectedItem is AlarmRanking selected) _openHistory?.Invoke(selected.Code);
+            if (Visible && _applied is { } applied && SelectedItem is AlarmRanking selected)
+                _openHistory?.Invoke(new AlarmHistorySelection(applied.From, applied.To, applied.Severity, selected.Code));
         });
     }
 
@@ -203,6 +217,7 @@ internal sealed class FlyAlarmPage : HistoryPage
         RangeText = $"{range.Item1.LocalDateTime:yyyy-MM-dd HH:mm:ss} ≤ 时间 < {range.Item2.LocalDateTime:yyyy-MM-dd HH:mm:ss}（本地时间）";
         Status = $"查到 {_rows.Length} 条飞拍报警。";
         Summary = $"报警类型 {ranked.Length} · 设备采集缺口 {Gaps}";
+        _applied = (range.Item1, range.Item2, severity);
     }
 
     internal static string Seconds(double seconds) => $"{seconds:0.###} s";
@@ -211,6 +226,7 @@ internal sealed class FlyAlarmPage : HistoryPage
     internal sealed record AlarmRanking(int Rank, string Code, string Description, int Occurrences,
         string Duration, string MetricText, double Percent)
     {
+        public AlarmTotals Data => new(Occurrences);
         public string Label => "飞拍 · " + Code;
         public string Meaning => Description;
     }

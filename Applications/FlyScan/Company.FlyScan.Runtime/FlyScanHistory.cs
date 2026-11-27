@@ -32,7 +32,7 @@ public sealed class FlyScanHistory : IDisposable
     private const string ReadObservation = "SELECT id,stamp,observed_until,session,connected,flags FROM observations";
     private readonly Dictionary<int, AlarmRun> _activeAlarms = [];
     private readonly TimeProvider _clock;
-    private readonly string _session = Guid.NewGuid().ToString("N");
+    private string _session = Guid.NewGuid().ToString("N");
     private readonly SqliteConnection _db;
     private Sample? _last;
 
@@ -90,8 +90,21 @@ public sealed class FlyScanHistory : IDisposable
 
     public void Observe(bool connected, bool alarm, bool emergency)
     {
+        try
+        {
+            SaveObservation(connected, (alarm ? 1 : 0) | (emergency ? 2 : 0));
+        }
+        catch (SqliteException)
+        {
+            // 采样未落盘即中断连续观察。新记录开启新的区间，防止恢复时用旧值补齐缺口。
+            if (_last?.Session == _session) _session = Guid.NewGuid().ToString("N");
+            throw;
+        }
+    }
+
+    private void SaveObservation(bool connected, int flags)
+    {
         var now = Now;
-        int flags = (alarm ? 1 : 0) | (emergency ? 2 : 0);
         if (_last is { } last)
         {
             if (now < last.End) now = last.End;

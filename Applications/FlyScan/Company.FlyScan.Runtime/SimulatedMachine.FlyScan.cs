@@ -9,10 +9,11 @@ public sealed partial class SimulatedMachine
     private static readonly CoordinateId ScanCoordinate = new("Front.Scan");
     private static readonly AxisId[] ScanAxes = [new("Front.X"), new("Front.Y"), new("Front.R1"), new("Front.R2")];
     private readonly SimulationClock _clock = new();
-    private bool _scanOwnsAxes;
+    private object? _scanOwner;
 
     internal DateTimeOffset ScanTime => _clock.GetUtcNow();
-    internal bool CanBeginScan => !_disposed && !_scanOwnsAxes && IsLoggedIn && Mode == 20 && Status is 0 or 20;
+    internal bool CanBeginScan => !_disposed && _scanOwner is null && IsLoggedIn && Mode == 20 && Status is 0 or 20;
+    internal bool OwnsScanAxes(object owner) => ReferenceEquals(_scanOwner, owner);
 
     public ScanPoint CaptureTeachingPoint()
     {
@@ -24,7 +25,7 @@ public sealed partial class SimulatedMachine
         return Position(states);
     }
 
-    internal void AcquireScanAxes()
+    internal void AcquireScanAxes(object owner)
     {
         if (!CanBeginScan)
             throw new InvalidOperationException("请登录并切换到自动模式停止或暂停状态。");
@@ -41,14 +42,18 @@ public sealed partial class SimulatedMachine
                 throw new InvalidOperationException(message);
 
         _clock.Freeze();
-        _scanOwnsAxes = true;
-        SetScanStatus(50);
+        _scanOwner = owner;
     }
 
-    internal void ReleaseScanAxes(int status)
+    internal void PublishScanRunning(object owner)
     {
-        if (!_scanOwnsAxes) return;
-        _scanOwnsAxes = false;
+        if (OwnsScanAxes(owner)) SetScanStatus(50);
+    }
+
+    internal void ReleaseScanAxes(object owner, int status)
+    {
+        if (!OwnsScanAxes(owner)) return;
+        _scanOwner = null;
         _clock.Thaw();
         if (Mode == 20 && Status == 50) SetScanStatus(status);
     }

@@ -1,5 +1,6 @@
 using Company.FlyScan.Runtime;
 using Company.Platform.Shared.Login;
+using Microsoft.Data.Sqlite;
 
 internal static class HistoryChecks
 {
@@ -75,6 +76,114 @@ internal static class HistoryChecks
         VerifyWorkflowRoundTrip();
         VerifyHeartbeatRuns();
         VerifyLiveAlarmProjection();
+        VerifyObservationWriteFailures();
+        VerifyCheckpointWriteFailures();
+        VerifyCompletionWriteRetry();
+
+        void VerifyCheckpointWriteFailures()
+        {
+            // Deny replacement of run.json, leaving the last committed checkpoint readable.
+            foreach (bool atUnload in new[] { false, true })
+            {
+                string prefix = atUnload ? "checkpoint-unload" : "checkpoint-compare";
+                string checkpoint = Path.Combine(evidence, prefix + ".json");
+                using var history = new FlyScanHistory(Path.Combine(evidence, prefix + ".sqlite"), clock);
+                using var machine = NewMachine();
+                using var workflow = new FlyScanWorkflow(machine, checkpoint, history: history);
+                workflow.Start(recipe, new());
+                AdvanceUntil(workflow, () => workflow.Phase == (atUnload ? ScanPhase.AwaitUnload : ScanPhase.Scanning));
+                Guid id = workflow.Workpiece!.Value;
+                var counts = workflow.Counts;
+                byte[] before = File.ReadAllBytes(checkpoint);
+                var unload = workflow.Outputs.RequestUnload;
+                using (File.Open(checkpoint, FileMode.Open, FileAccess.Read, FileShare.Read))
+                {
+                    var outputs = workflow.Outputs;
+                    var robot = outputs.RequestRobot;
+                    workflow.Tick(TimeSpan.FromMilliseconds(30), new(Robot: robot is null ? null : new(robot.Command, robot.Pose, true, false),
+                        VisionReady: true, UnloadConfirmation: unload));
+                    check(workflow.Phase == ScanPhase.Interrupted && workflow.Interruption == ScanInterruption.JournalFailed &&
+                        workflow.Workpiece == id && workflow.Counts == counts && !workflow.TriggerArmed &&
+                        workflow.Outputs == new FlyScanOutputs(null, null, false, null, false),
+                        $"{prefix}: checkpoint failure withdraws outputs before confirming the pending event");
+                    check(File.ReadAllBytes(checkpoint).SequenceEqual(before) &&
+                        history.Pieces(clock.Utc.AddDays(-1), clock.Utc.AddDays(1)).Count == 0,
+                        $"{prefix}: preserves the last durable checkpoint and records no completion");
+                }
+                workflow.Tick(TimeSpan.FromMilliseconds(30), new(VisionReady: true, UnloadConfirmation: unload));
+                check(workflow.Phase == ScanPhase.Interrupted && workflow.Counts == counts,
+                    $"{prefix}: repairing the file does not automatically recover the motion");
+                workflow.Recover(new());
+                AdvanceUntil(workflow, () => workflow.Phase == ScanPhase.Completed);
+                check(workflow.Workpiece == id && workflow.Counts == new ScanCounts(1, 2, 5) &&
+                    history.Pieces(clock.Utc.AddDays(-1), clock.Utc.AddDays(1)) is [{ Id: var saved }] && saved == id &&
+                    (!atUnload || workflow.Events.All(entry => entry.Attempt != 2 || entry.Pulse is null)),
+                    $"{prefix}: explicit recovery settles the same piece once and reruns only unfinished groups");
+            }
+        }
+
+        void VerifyCompletionWriteRetry()
+        {
+            var workflowPath = Path.Combine(evidence, "completion-retry.json");
+            var database = Path.Combine(evidence, "completion-retry.sqlite");
+            var completedAt = new DateTimeOffset(2026, 11, 24, 19, 59, 59, TimeSpan.FromHours(8));
+            clock.Utc = completedAt;
+            Guid id;
+            using (var history = new FlyScanHistory(database, clock))
+            using (var machine = NewMachine())
+            using (var workflow = new FlyScanWorkflow(machine, workflowPath, history: history))
+            {
+                using var writer = new SqliteConnection(new SqliteConnectionStringBuilder { DataSource = database }.ToString());
+                writer.Open();
+                using var command = writer.CreateCommand();
+                command.CommandText = """
+                    CREATE TRIGGER fixture_completion_failure BEFORE INSERT ON operations WHEN NEW.action='工件完成'
+                    BEGIN
+                        SELECT RAISE(ABORT,'fixture completion operation failed');
+                    END;
+                    """;
+                command.ExecuteNonQuery();
+                workflow.Start(recipe, new());
+                id = workflow.Workpiece!.Value;
+                AdvanceUntil(workflow, () => workflow.Phase == ScanPhase.Completed);
+                DateTimeOffset from = completedAt.AddHours(-1), to = completedAt.AddHours(1);
+                check(workflow.Counts == new ScanCounts(1, 2, 5) && workflow.HistoryError is not null &&
+                    history.Pieces(from, to).Count == 0 && history.Operations(from, to, "", "工件完成").Count == 0,
+                    "D1 rejected history transaction leaves one durable completion and rolls back both SQLite rows");
+                byte[] before = File.ReadAllBytes(workflowPath);
+                bool nextRejected = false;
+                try { workflow.Start(recipe, new()); }
+                catch (InvalidOperationException) { nextRejected = true; }
+                check(nextRejected && workflow.Workpiece == id && File.ReadAllBytes(workflowPath).SequenceEqual(before),
+                    "D1 a new workpiece cannot replace the durable completion while its history write fails");
+
+                command.CommandText = "DROP TRIGGER fixture_completion_failure;";
+                command.ExecuteNonQuery();
+                clock.Utc += TimeSpan.FromMilliseconds(500);
+                workflow.Tick(TimeSpan.Zero, new());
+                check(history.Pieces(from, to).Count == 0, "D1 idle history retries are throttled");
+                clock.Utc += TimeSpan.FromSeconds(10);
+                workflow.Tick(TimeSpan.Zero, new());
+                check(workflow.HistoryError is null && workflow.Phase == ScanPhase.Completed && workflow.Workpiece == id &&
+                    workflow.Counts == new ScanCounts(1, 2, 5) && File.ReadAllBytes(workflowPath).SequenceEqual(before) &&
+                    history.Pieces(from, to) is [{ Id: var savedId, Time: var savedTime }] &&
+                    savedId == id && savedTime == completedAt &&
+                    history.Operations(from, to, "", "工件完成") is [{ Time: var logTime }] && logTime == completedAt,
+                    "D1 idle retry restores both history rows once at the original confirmation time without starting motion");
+                var date = FlyProductionCalendar.DayOf(completedAt);
+                var day = FlyProductionCalendar.Read(history, date, date).Single();
+                check(day.DayPieces == 1 && day.NightPieces == 0,
+                    "D1 a retry after the 20:00 boundary preserves the original day-shift count");
+            }
+            using (var history = new FlyScanHistory(database, clock))
+            using (var machine = NewMachine())
+            using (var workflow = new FlyScanWorkflow(machine, workflowPath, history: history))
+            {
+                check(history.Pieces(completedAt.AddHours(-1), clock.Utc) is [{ Id: var savedId }] && savedId == id &&
+                    history.Operations(completedAt.AddHours(-1), clock.Utc, "", "工件完成").Count == 1 &&
+                    workflow.Counts == new ScanCounts(1, 2, 5), "D1 restart does not duplicate the repaired completion");
+            }
+        }
 
         void VerifyHeartbeatRuns()
         {
@@ -154,6 +263,78 @@ internal static class HistoryChecks
                     pair.First.KnownDuration(beginning.AddSeconds(2), now) ==
                         pair.Second.KnownDuration(beginning.AddSeconds(2), now)),
                 $"Live alarm fields and clipped observation intervals match history after {stage}");
+        }
+
+        void VerifyObservationWriteFailures()
+        {
+            foreach (bool transition in new[] { true, false })
+            {
+                string name = transition ? "alarm-transition-write-failure" : "alarm-heartbeat-write-failure";
+                var database = Path.Combine(evidence, name + ".sqlite");
+                var lastConfirmed = beginning.AddSeconds(2);
+                var resumed = beginning.AddSeconds(4);
+                var finished = beginning.AddSeconds(6);
+                using (var history = new FlyScanHistory(database, clock))
+                {
+                    clock.Utc = beginning;
+                    history.Observe(true, alarm: false, emergency: false);
+                    clock.Utc = beginning.AddSeconds(1);
+                    history.Observe(true, alarm: true, emergency: false);
+                    clock.Utc = lastConfirmed;
+                    history.Observe(true, alarm: true, emergency: false);
+
+                    using var fixture = new SqliteConnection(new SqliteConnectionStringBuilder { DataSource = database }.ToString());
+                    fixture.Open();
+                    using var command = fixture.CreateCommand();
+                    string operation = transition ? "INSERT" : "UPDATE";
+                    command.CommandText = $"""
+                        CREATE TRIGGER fixture_observation_failure BEFORE {operation} ON observations
+                        BEGIN
+                            SELECT RAISE(ABORT,'fixture observation write failed');
+                        END;
+                        """;
+                    command.ExecuteNonQuery();
+                    clock.Utc = beginning.AddSeconds(3);
+                    bool rejected = false;
+                    try { history.Observe(connected: !transition, alarm: true, emergency: false); }
+                    catch (SqliteException error) when (error.Message.Contains("fixture observation write failed", StringComparison.Ordinal))
+                    { rejected = true; }
+                    check(rejected, $"{name}: SQLite rejects the intended write");
+
+                    var fault = history.Alarms(beginning, clock.Utc);
+                    check(!fault.Online && history.LastConfirmed == lastConfirmed &&
+                        fault.Gaps.SequenceEqual([new ObservationSpan(lastConfirmed, clock.Utc)]) &&
+                        fault.Alarms is [{ Code: "CARD", Uncertain: true }],
+                        $"{name}: a rejected write immediately marks live status and the interval as unknown");
+                    VerifyLiveMatchesHistory(history, name + " rejected write");
+                    command.CommandText = "DROP TRIGGER fixture_observation_failure";
+                    command.ExecuteNonQuery();
+                    clock.Utc = resumed;
+                    history.Observe(true, alarm: true, emergency: false);
+                    check(history.Online && history.LastConfirmed == resumed,
+                        $"{name}: the next persisted sample restores live feedback");
+                    VerifyLiveMatchesHistory(history, name + " recovered write");
+                    clock.Utc = beginning.AddSeconds(5);
+                    history.Observe(true, alarm: true, emergency: false);
+                    clock.Utc = finished;
+                    history.Observe(true, alarm: false, emergency: false);
+                    VerifyGap(history, "queries");
+                }
+                using var reopened = new FlyScanHistory(database, clock);
+                VerifyGap(reopened, "queries after restart");
+
+                void VerifyGap(FlyScanHistory history, string source)
+                {
+                    var report = history.Alarms(beginning, finished.AddTicks(1));
+                    var alarm = report.Alarms.Single(item => item.Code == "CARD");
+                    check(report.Gaps.SequenceEqual([new ObservationSpan(lastConfirmed, resumed)]) &&
+                        alarm.Uncertain && alarm.End == finished &&
+                        alarm.KnownSpans.SequenceEqual([new ObservationSpan(beginning.AddSeconds(1), lastConfirmed),
+                            new ObservationSpan(resumed, finished)]) &&
+                        alarm.KnownDuration(beginning, finished) == TimeSpan.FromSeconds(3),
+                        $"{name}: {source} retain the two-second gap and three seconds of confirmed alarm time");
+                }
+            }
         }
 
         void VerifyWorkflowRoundTrip()

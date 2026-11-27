@@ -11,7 +11,7 @@ public sealed partial class SimulatedMachine : INotifyPropertyChanged, IDisposab
 {
     private readonly NoneControlCard _card;
     private CurrentUser _user = new();
-    private bool _confirmed = true, _initialized;
+    private bool _connected = true, _confirmed = true, _initialized;
     private int _mode, _status;
     private bool _disposed;
     private AxisId? _joggedAxis;
@@ -48,14 +48,15 @@ public sealed partial class SimulatedMachine : INotifyPropertyChanged, IDisposab
     public IReadOnlyList<AxisConfiguration> Axes { get; }
     public IReadOnlyList<CoordinateConfiguration> Coordinates { get; }
     public IReadOnlyList<SynchronizationConfiguration> Synchronizations { get; }
-    public int? Mode => _confirmed ? _mode : null;
-    public int? Status => _confirmed ? _status : null;
+    public bool CardConnected => !_disposed && _connected;
+    public int? Mode => CardConnected && _confirmed ? _mode : null;
+    public int? Status => CardConnected && _confirmed ? _status : null;
     public long ContextVersion { get; private set; }
     public bool Initialized => _initialized;
     public bool IsLoggedIn => RoleAccessRules.IsLoggedIn(_user);
     public string Actor => Roles.FirstOrDefault(item => (int?)item.Role == _user.Role)?.Name ?? "访客";
     public bool CanConfigure => RoleAccessRules.CanConfigureEquipment(_user);
-    public bool CanAdjust => !_disposed && !_scanOwnsAxes && _card.IsInitialized && CanConfigure && Mode == 0 && Status == 30;
+    public bool CanAdjust => !_disposed && _scanOwner is null && _card.IsInitialized && CanConfigure && Mode == 0 && Status == 30;
 
     public void SelectRole(UserRole? role)
     {
@@ -84,6 +85,13 @@ public sealed partial class SimulatedMachine : INotifyPropertyChanged, IDisposab
         InvalidateAccess();
     }
 
+    public void SetCardConnected(bool connected)
+    {
+        if (_disposed || _connected == connected) return;
+        _connected = connected;
+        InvalidateAccess();
+    }
+
     public void CompleteInitialization()
     {
         if (Mode != 0 || Status != 40) return;
@@ -95,7 +103,7 @@ public sealed partial class SimulatedMachine : INotifyPropertyChanged, IDisposab
 
     public AxisState? ReadAxis(AxisId id)
     {
-        if (!_confirmed || !_card.RefreshAxisState(id)) return null;
+        if (!CardConnected || !_confirmed || !_card.RefreshAxisState(id)) return null;
         return _card.AxisStates.FirstOrDefault(state => state.Axis == id && state.Valid);
     }
 
@@ -188,6 +196,7 @@ public sealed partial class SimulatedMachine : INotifyPropertyChanged, IDisposab
     {
         if (_disposed) return;
         _disposed = true;
+        _scanOwner = null;
         ReleaseJog();
         _card.Close();
     }

@@ -9,16 +9,23 @@ public sealed class FlyScanWorkflow : IDisposable
 {
     private static readonly TimeSpan DefaultStepTimeout = TimeSpan.FromSeconds(30);
     private static readonly TimeSpan SimulatedPulseWidth = TimeSpan.FromMilliseconds(2);
+    private static readonly TimeSpan CompletionRetryInterval = TimeSpan.FromSeconds(2);
+    private static readonly FlyScanOutputs InactiveOutputs = new(null, null, false, null, false);
     private readonly SimulatedMachine _machine;
+    private readonly object _axisOwner = new();
     private readonly string? _journalPath;
     private readonly TimeSpan _stepTimeout;
     private readonly FileStream? _journalLock;
     private readonly FlyScanHistory? _history;
-    private readonly Queue<ScanFlightEvent> _events = new();
+    private readonly LinkedList<ScanFlightEvent> _events = new();
     private ScanJournal _journal = new(new ScanCounts(0, 0, 0), null);
+    private bool _disposed;
     private long _ownershipVersion;
-    private DateTimeOffset _phaseStarted, _triggerOff;
+    private DateTimeOffset _phaseStarted;
+    private DateTimeOffset? _nextCompletionRetry;
+    private LinkedListNode<ScanFlightEvent>? _lastPulse;
     private RobotPoseRequest? _robotRequest;
+    private TransferRequest? _transferRequest;
     private ScanMotionFeedback? _motionOrigin;
 
     public FlyScanWorkflow(SimulatedMachine machine, string? journalPath = null, TimeSpan? stepTimeout = null,
@@ -64,55 +71,62 @@ public sealed class FlyScanWorkflow : IDisposable
     public ScanPhase Phase => Work?.Phase ?? ScanPhase.Idle;
     public bool IsRunning => Phase is >= ScanPhase.AwaitLoad and <= ScanPhase.AwaitUnload;
     public bool CleanupPending { get; private set; }
-    public bool TriggerArmed => Phase == ScanPhase.Scanning;
+    public bool TriggerArmed => Phase == ScanPhase.Scanning && ScanContextIsCurrent;
     public Guid? Workpiece => Work?.Id;
     public int Attempt => Work?.Attempt ?? 0;
     public int ConfirmedGroups => Work?.GroupsCompleted ?? 0;
     public int LastConfirmedTrigger => Work?.LastTrigger ?? 0;
     public ScanInterruption? Interruption => Work?.Reason;
+    public FlyScanRecipe? RecipeAwaitingRecovery => Work is { Phase: ScanPhase.Interrupted } pending ? pending.Recipe : null;
     public string Message => Work?.Message ?? "请选择配方，切到自动模式后开始。";
     public ScanCounts Counts => _journal.Counts;
     public string? HistoryError { get; private set; }
     public ScanMotionFeedback? Feedback { get; private set; }
     public DateTimeOffset Clock => _machine.ScanTime;
     public IReadOnlyCollection<ScanFlightEvent> Events => _events.ToArray();
-    public bool CanStart => (Phase is ScanPhase.Idle or ScanPhase.Completed) && _machine.CanBeginScan;
-    public FlyScanOutputs Outputs => new(Phase == ScanPhase.AwaitLoad ? Workpiece : null,
-        _robotRequest, Phase is >= ScanPhase.AwaitReady and <= ScanPhase.ConfirmGroup,
-        Phase == ScanPhase.AwaitUnload ? Workpiece : null, IsRunning && Clock < _triggerOff);
+    public bool CanStart => !_disposed && (Phase is ScanPhase.Idle or ScanPhase.Completed) && _machine.CanBeginScan;
+    private DateTimeOffset PulseOff => _lastPulse?.Value.Pulse?.Off ?? default;
+    private bool ScanContextIsCurrent => !_disposed && _machine.OwnsScanAxes(_axisOwner) &&
+        _ownershipVersion == _machine.ContextVersion;
+    public FlyScanOutputs Outputs => IsRunning && ScanContextIsCurrent
+        ? new(Phase == ScanPhase.AwaitLoad ? _transferRequest : null,
+            _robotRequest, Phase is >= ScanPhase.AwaitReady and <= ScanPhase.ConfirmGroup,
+            Phase == ScanPhase.AwaitUnload ? _transferRequest : null, Clock < PulseOff)
+        : InactiveOutputs;
 
     public void Start(FlyScanRecipe recipe, FlyScanInputs inputs)
     {
         if (!CanStart || InputFault(inputs) is not null)
             throw new InvalidOperationException("新工件需要正常的自动模式、联机和安全反馈。");
         TrySaveCompletion();
-        if (Work is { Phase: ScanPhase.Completed, CompletedAt: not null } && HistoryError is { } error)
-            throw new InvalidOperationException("上一件历史正在等待补写。"+error);
+        if (_nextCompletionRetry is not null)
+            throw new InvalidOperationException("上一件历史正在等待补写。" + HistoryError);
         var snapshot = recipe.Validate();
-        _machine.AcquireScanAxes();
+        _machine.AcquireScanAxes(_axisOwner);
         try
         {
             Commit(new ScanWorkpiece(Guid.NewGuid(), snapshot, ScanPhase.AwaitLoad, false, 0, 1, 0, null, "等待上料确认。"));
         }
         catch
         {
-            _machine.ReleaseScanAxes(0);
+            _machine.ReleaseScanAxes(_axisOwner, 0);
             throw;
         }
         _ownershipVersion = _machine.ContextVersion;
         _phaseStarted = Clock;
         Feedback = null;
         Record("工件开始", Current.Recipe.Name);
+        _machine.PublishScanRunning(_axisOwner);
     }
 
     /// <summary>恢复须显式调用，保留已确认的组，从未完成组的起点重新执行。</summary>
     public void Recover(FlyScanInputs inputs)
     {
-        if (Phase != ScanPhase.Interrupted || InputFault(inputs) is not null)
+        if (_disposed || Phase != ScanPhase.Interrupted || InputFault(inputs) is not null)
             throw new InvalidOperationException("请清除故障和异常输入，再确认恢复。");
         if (!TryCleanup(inputs))
             throw new InvalidOperationException("尚未确认轨迹清理，请排查后重试。");
-        _machine.AcquireScanAxes();
+        _machine.AcquireScanAxes(_axisOwner);
         try
         {
             var attempt = Current with { Attempt = checked(Current.Attempt + 1), LastTrigger = 0, Reason = null };
@@ -122,19 +136,21 @@ public sealed class FlyScanWorkflow : IDisposable
         }
         catch
         {
-            _machine.ReleaseScanAxes(0);
+            _machine.ReleaseScanAxes(_axisOwner, 0);
             throw;
         }
         _ownershipVersion = _machine.ContextVersion;
         Feedback = null;
         Record("恢复", $"保留 {ConfirmedGroups} 个已确认组。");
+        _machine.PublishScanRunning(_axisOwner);
     }
 
     public void Interrupt(ScanInterruption reason, FlyScanInputs inputs)
     {
-        if (!IsRunning) return;
+        if (_disposed || !IsRunning) return;
         var previous = Phase;
         _robotRequest = null;
+        _transferRequest = null;
         string description = Describe(reason);
         var text = previous is ScanPhase.Scanning or ScanPhase.ConfirmGroup
             ? $"{description}。第 {ConfirmedGroups + 1} 组未确认完成。已确认脉冲 {LastConfirmedTrigger}/{Group.Triggers.Count}，未确认区间及组结算待核对。"
@@ -142,7 +158,7 @@ public sealed class FlyScanWorkflow : IDisposable
         var stopped = Current with { Phase = ScanPhase.Interrupted, Reason = reason, Message = text };
         // 先撤防和清理，再尝试写盘。持久化故障也不能让旧路径继续运行。
         _journal = _journal with { Workpiece = stopped };
-        _triggerOff = default;
+        EndTriggerPulse();
         TryCleanup(inputs, reason == ScanInterruption.Paused ? 20 : 0);
         try { Commit(stopped); }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
@@ -157,9 +173,14 @@ public sealed class FlyScanWorkflow : IDisposable
     public void Tick(TimeSpan elapsed, FlyScanInputs inputs)
     {
         if (elapsed < TimeSpan.Zero) throw new ArgumentOutOfRangeException(nameof(elapsed));
-        if (!IsRunning) return;
+        if (_disposed) return;
+        if (!IsRunning)
+        {
+            RetryPendingCompletion();
+            return;
+        }
         var reason = InputFault(inputs);
-        if (reason is null && _ownershipVersion != _machine.ContextVersion)
+        if (reason is null && !ScanContextIsCurrent)
             reason = ScanInterruption.ContextChanged;
         if (reason is null && Outputs.HoldRobot && !RobotIsHolding(inputs))
             reason = ScanInterruption.RobotMoved;
@@ -180,12 +201,20 @@ public sealed class FlyScanWorkflow : IDisposable
         }
     }
 
+    // A completed journal already contains the original ID and confirmation time. Retry only the SQLite transaction.
+    public bool RetryPendingCompletion()
+    {
+        if (_disposed || _nextCompletionRetry is not { } due || _history!.Now < due) return false;
+        TrySaveCompletion();
+        return true;
+    }
+
     // 业务步骤集中在这里。改变两组任务的先后、等待或恢复策略时，从此处进入。
     private void RunCurrentStep(FlyScanInputs inputs)
     {
         switch (Phase)
         {
-            case ScanPhase.AwaitLoad when inputs.LoadedWorkpiece == Workpiece:
+            case ScanPhase.AwaitLoad when _transferRequest is { } load && inputs.LoadConfirmation == load:
                 MoveTo(ScanPhase.AwaitRobot, "上料确认，等待机器人到示教位。", Current with { Loaded = true });
                 break;
             case ScanPhase.AwaitRobot when RobotIsHolding(inputs):
@@ -198,14 +227,14 @@ public sealed class FlyScanWorkflow : IDisposable
             case ScanPhase.Scanning:
                 PollMotion(inputs);
                 break;
-            case ScanPhase.ConfirmGroup when Clock >= _triggerOff:
+            case ScanPhase.ConfirmGroup when Clock >= PulseOff:
                 ConfirmGroup();
                 break;
-            case ScanPhase.AwaitUnload when inputs.UnloadedWorkpiece == Workpiece:
+            case ScanPhase.AwaitUnload when _transferRequest is { } unload && inputs.UnloadConfirmation == unload:
                 Commit(Current with { Phase = ScanPhase.Completed, Message = "两组扫描和下料已确认。",
                         CompletedAt = _history?.Now ?? Clock, CompletionActor = _machine.Actor },
                     Counts with { Pieces = checked(Counts.Pieces + 1) });
-                _machine.ReleaseScanAxes(0);
+                _machine.ReleaseScanAxes(_axisOwner, 0);
                 TrySaveCompletion();
                 Record("工件完成", Message);
                 break;
@@ -282,17 +311,24 @@ public sealed class FlyScanWorkflow : IDisposable
                 if (target.Segment < slice.Segment) return false;
                 if (target.Segment != slice.Segment || !start.TryCross(end, target.Position, out double fraction)) break;
                 var on = slice.StartedAt + TimeSpan.FromTicks((long)Math.Round(slice.Duration.Ticks * fraction));
-                if (on < _triggerOff) return false; // 此仿真脉宽内不能叠加第二次上升沿。
+                if (on <= PulseOff) return false; // 两个上升沿之间须有低电平区间。
                 var at = new ScanPoint(start.X + (end.X - start.X) * fraction, start.Y + (end.Y - start.Y) * fraction,
                     start.R1 + (end.R1 - start.R1) * fraction);
                 var pulse = new TriggerPulse(target.Name, at, on, on + SimulatedPulseWidth);
                 Commit(Current with { LastTrigger = LastConfirmedTrigger + 1 },
                     Counts with { Triggers = checked(Counts.Triggers + 1) });
-                _triggerOff = pulse.Off;
                 Record("触发", target.Name, pulse);
             }
         }
         return true;
+    }
+
+    private void EndTriggerPulse()
+    {
+        var stoppedAt = Clock;
+        if (_lastPulse is { Value.Pulse: { } pulse } active && stoppedAt < pulse.Off)
+            active.Value = active.Value with { Pulse = pulse with { Off = stoppedAt } };
+        _lastPulse = null;
     }
 
     private void ConfirmGroup()
@@ -337,10 +373,12 @@ public sealed class FlyScanWorkflow : IDisposable
 
     private bool TryCleanup(FlyScanInputs inputs, int stoppedStatus = 0)
     {
+        if (!_machine.OwnsScanAxes(_axisOwner))
+            return !CleanupPending && inputs.CardConnected && !inputs.BlockCleanup;
         Feedback = inputs.CardConnected && !inputs.BlockCleanup && _machine.ClearScanPath()
             ? _machine.ReadScanMotion(out _) : null;
         CleanupPending = Feedback is not { Busy: false, R1Speed: 0, R2Speed: 0 };
-        if (!CleanupPending) _machine.ReleaseScanAxes(stoppedStatus);
+        if (!CleanupPending) _machine.ReleaseScanAxes(_axisOwner, stoppedStatus);
         return !CleanupPending;
     }
 
@@ -357,14 +395,19 @@ public sealed class FlyScanWorkflow : IDisposable
     {
         var next = new ScanJournal(counts ?? Counts, workpiece);
         if (_journalPath is not null) SimulationJson.Write(_journalPath, next);
+        // 握手号随已确认的步骤生成。恢复保留工件 ID，但旧请求的确认不能推进新尝试。
+        if (Work?.Id != workpiece.Id || Phase != workpiece.Phase)
+            _transferRequest = workpiece.Phase is ScanPhase.AwaitLoad or ScanPhase.AwaitUnload
+                ? new TransferRequest(Guid.NewGuid(), workpiece.Id) : null;
         _journal = next;
     }
 
     private void Record(string kind, string description, TriggerPulse? pulse = null, int? group = null)
     {
-        if (_events.Count == 2000) _events.Dequeue();
-        _events.Enqueue(new ScanFlightEvent(pulse?.On ?? Clock, Current.Id,
+        if (_events.Count == 2000) _events.RemoveFirst();
+        var entry = _events.AddLast(new ScanFlightEvent(pulse?.On ?? Clock, Current.Id,
             group ?? Math.Min(Current.GroupsCompleted + 1, 2), Current.Attempt, kind, description, pulse));
+        if (pulse is not null) _lastPulse = entry;
         if (_history is null || kind is not ("工件开始" or "中断" or "恢复" or "组完成")) return;
         try
         {
@@ -380,10 +423,28 @@ public sealed class FlyScanWorkflow : IDisposable
         try
         {
             _history.RecordCompletion(piece.Id, time, piece.CompletionActor ?? "飞拍仿真");
+            _nextCompletionRetry = null;
             HistoryError = null;
         }
-        catch (SqliteException ex) { HistoryError = ex.Message; }
+        catch (SqliteException ex)
+        {
+            HistoryError = ex.Message;
+            _nextCompletionRetry = _history.Now + CompletionRetryInterval;
+        }
     }
 
-    public void Dispose() => _journalLock?.Dispose();
+    public void Dispose()
+    {
+        if (_disposed) return;
+        _disposed = true;
+        try
+        {
+            if (_machine.OwnsScanAxes(_axisOwner) && !CleanupPending)
+            {
+                EndTriggerPulse();
+                TryCleanup(new());
+            }
+        }
+        finally { _journalLock?.Dispose(); }
+    }
 }

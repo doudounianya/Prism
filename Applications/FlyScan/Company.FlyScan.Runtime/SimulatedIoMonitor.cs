@@ -7,32 +7,37 @@ using System.Runtime.CompilerServices;
 
 namespace Company.FlyScan.Runtime;
 
-/// <summary>G1 仿真卡 IO 适配器。所有读取和测试事件都由宿主界面线程串行处理。</summary>
+/// <summary>主卡显示飞拍握手，第二台仿真卡用于独立 IO 分组演示。</summary>
 public sealed class SimulatedIoMonitor : IIoMonitor, IDisposable
 {
     private const uint BankCount = 2;
-    private readonly Dictionary<string, NoneControlCard> _cards = new()
-    {
-        ["IMC-SIM-01"] = new(),
-        ["IMC-SIM-02"] = new()
-    };
+    private const string PrimaryDevice = "IMC-SIM-01";
+    private const string SampleDevice = "IMC-SIM-02";
+    private readonly SimulatedMachine _machine;
+    private readonly NoneControlCard _sample = new();
     private readonly Dictionary<(string, string, uint, int), (bool Value, DateTimeOffset At)> _last = new();
-    private string? _device = "IMC-SIM-01", _type = "DI", _group = "0";
+    private string? _device = PrimaryDevice, _type = "DI", _group = "0";
+    private bool _primaryConnected;
+    private (FlyScanInputs Inputs, FlyScanOutputs Outputs)? _scanSnapshot;
+    private DateTimeOffset _scanSampleAt;
     private bool _visible, _disposed;
     private IReadOnlyList<IIoSignal> _items = [];
     private string _summary = "", _message = "";
 
-    public SimulatedIoMonitor()
+    public SimulatedIoMonitor(SimulatedMachine machine)
     {
-        Devices = _cards.Keys.ToArray();
-        foreach (string device in Devices)
-            SetConnection(device, connected: true);
+        _machine = machine;
+        _primaryConnected = machine.CardConnected;
+        SetConnection(SampleDevice, connected: true);
+        _machine.PropertyChanged += MachineChanged;
     }
 
     public event PropertyChangedEventHandler? PropertyChanged;
-    public IReadOnlyList<string> Devices { get; }
+    public IReadOnlyList<string> Devices { get; } = [PrimaryDevice, SampleDevice];
     public IReadOnlyList<string> SignalTypes { get; } = ["DI", "DO"];
     public IReadOnlyList<string> Groups { get; } = ["0", "1"];
+    /// <summary>采集飞拍主卡快照前读取；主卡断开或重连都会作废旧快照。</summary>
+    public long ScanConnectionEpoch { get; private set; }
     public IReadOnlyList<IIoSignal> Items { get => _items; private set => Set(ref _items, value); }
     public string BindingLabel => "运动卡绑定";
     public string ReadOnlyNotice => "只读监视；ON / OFF 仅表示运动卡位值，不代表安全状态。";
@@ -67,10 +72,15 @@ public sealed class SimulatedIoMonitor : IIoMonitor, IDisposable
     public void SetConnection(string device, bool connected)
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
-        var card = _cards[device];
-        if (connected && !card.IsInitialized)
+        if (device == PrimaryDevice)
         {
-            if (!card.Initialize(new MotionConfiguration
+            _machine.SetCardConnected(connected);
+            return;
+        }
+        if (device != SampleDevice) throw new ArgumentOutOfRangeException(nameof(device));
+        if (connected && !_sample.IsInitialized)
+        {
+            if (!_sample.Initialize(new MotionConfiguration
             {
                 Enabled = true,
                 AllowNativeHardware = false,
@@ -78,12 +88,56 @@ public sealed class SimulatedIoMonitor : IIoMonitor, IDisposable
                 OutputBankCount = BankCount
             }))
                 throw new InvalidOperationException("无法初始化运动卡仿真。");
-            card.SetSimulatedInput(0, device == Devices[0] ? 0 : 1, true);
-            card.SetSimulatedInput(1, device == Devices[0] ? 4 : 5, true);
+            _sample.SetSimulatedInput(0, 1, true);
+            _sample.SetSimulatedInput(1, 5, true);
         }
         else if (!connected)
-            card.Close();
+            _sample.Close();
         Refresh();
+    }
+
+    private void MachineChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        if (_primaryConnected == _machine.CardConnected) return;
+        _primaryConnected = _machine.CardConnected;
+        ++ScanConnectionEpoch;
+        _scanSnapshot = null;
+        if (SelectedDevice == PrimaryDevice) Refresh();
+    }
+
+    public void PublishScanIo(long connectionEpoch, FlyScanInputs inputs, FlyScanOutputs outputs)
+    {
+        if (_disposed || connectionEpoch != ScanConnectionEpoch) return;
+        (FlyScanInputs Inputs, FlyScanOutputs Outputs)? snapshot =
+            _machine.CardConnected && inputs.CardConnected ? (inputs, outputs) : null;
+        if (_scanSnapshot == snapshot) return;
+        _scanSnapshot = snapshot;
+        _scanSampleAt = DateTimeOffset.UtcNow;
+        if (SelectedDevice == PrimaryDevice) Refresh();
+    }
+
+    private (string Name, bool Value)[] ScanChannelValues(bool input)
+    {
+        var inputs = _scanSnapshot?.Inputs;
+        var outputs = _scanSnapshot?.Outputs;
+        if (input)
+            return
+            [
+                ("上料确认", inputs?.LoadConfirmation is not null),
+                ("机器人到位并保持", inputs?.Robot is { InPosition: true, Moving: false }),
+                ("视觉 Ready", inputs?.VisionReady == true),
+                ("下料确认", inputs?.UnloadConfirmation is not null),
+                ("告警", inputs?.Alarm == true),
+                ("急停", inputs?.EmergencyStop == true)
+            ];
+        return
+        [
+            ("上料请求", outputs?.RequestLoad is not null),
+            ("机器人示教位请求", outputs?.RequestRobot is not null),
+            ("机器人保持请求", outputs?.HoldRobot == true),
+            ("视觉触发", outputs?.VisionTrigger == true),
+            ("下料请求", outputs?.RequestUnload is not null)
+        ];
     }
 
     private void Refresh()
@@ -92,28 +146,33 @@ public sealed class SimulatedIoMonitor : IIoMonitor, IDisposable
             SelectedSignalType is not { } type || !uint.TryParse(SelectedGroup, out var bank))
             return;
 
-        var card = _cards[device];
-        bool connected = card.IsInitialized;
+        bool primary = device == PrimaryDevice;
+        bool connected = primary ? _machine.CardConnected : _sample.IsInitialized;
         bool input = type == "DI";
-        bool read = connected && (input ? card.RefreshInputs(out _) : card.RefreshOutputs(out _));
-        var points = read ? (input ? card.InputStates : card.OutputStates)
+        bool read = connected && (primary ? _scanSnapshot.HasValue :
+            input ? _sample.RefreshInputs(out _) : _sample.RefreshOutputs(out _));
+        var scanPoints = primary && bank == 0 ? ScanChannelValues(input) : [];
+        var points = read && !primary ? (input ? _sample.InputStates : _sample.OutputStates)
             .Where(p => p.Bank == bank).ToDictionary(p => p.Bit) : [];
 
         Items = Enumerable.Range(0, 16).Select(channel =>
         {
-            // 每个仿真组的末位保留未映射，验证界面可区分未知、未配置与有效 OFF。
-            bool configured = channel != 15;
-            points.TryGetValue(channel, out var point);
+            bool configured = primary ? channel < scanPoints.Length : channel != 15;
+            bool? value = null;
+            if (configured && read)
+            {
+                if (primary) value = scanPoints[channel].Value;
+                else if (points.GetValueOrDefault(channel) is { Available: true, Valid: true } point) value = point.Value;
+            }
             var key = (device, type, bank, channel);
-            if (configured && point is { Available: true, Valid: true })
-                _last[key] = (point.Value, point.UpdatedAt);
+            if (value is { } valid)
+                _last[key] = (valid, primary ? _scanSampleAt : points[channel].UpdatedAt);
             var historical = _last.TryGetValue(key, out var last) ? last : ((bool Value, DateTimeOffset At)?)null;
-            bool? value = configured && point is { Available: true, Valid: true } ? point.Value : null;
             string logical = $"IO.{type}[{bank}].{channel:00}";
             return (IIoSignal)new Signal(
                 channel.ToString("00", CultureInfo.InvariantCulture),
                 logical,
-                configured ? $"仿真{(input ? "输入" : "输出")}{channel:00}" : "未配置 / 禁用",
+                !configured ? "未配置 / 禁用" : primary ? scanPoints[channel].Name : $"仿真{(input ? "输入" : "输出")}{channel:00}",
                 value,
                 value == true ? "ON" : value == false ? "OFF" : configured ? "未知" : "未配置 / 禁用",
                 value == true ? IoIndicator.On : configured && value is null ? IoIndicator.ReadFailure : IoIndicator.Neutral,
@@ -121,7 +180,7 @@ public sealed class SimulatedIoMonitor : IIoMonitor, IDisposable
                 historical?.At.ToLocalTime().ToString("HH:mm:ss.fff", CultureInfo.InvariantCulture) ?? "—",
                 historical?.Value.ToString() ?? "—",
                 configured ? $"{device} | {type} | 分组 {bank} | 通道 {channel:00}" : "未配置 / 禁用",
-                configured && !read ? connected ? "仿真读取失败" : "仿真连接已断开" : "");
+                configured && !read ? !connected ? "仿真连接已断开" : primary ? "等待飞拍当前反馈" : "仿真读取失败" : "");
         }).ToArray();
         int enabled = Items.Count(i => i.Value == true);
         int disabled = Items.Count(i => i.Value == false);
@@ -142,7 +201,8 @@ public sealed class SimulatedIoMonitor : IIoMonitor, IDisposable
     {
         if (_disposed) return;
         _disposed = true;
-        foreach (var card in _cards.Values) card.Close();
+        _machine.PropertyChanged -= MachineChanged;
+        _sample.Close();
     }
 
     private sealed record Signal(string Channel, string LogicalId, string DisplayName, bool? Value, string StateText,

@@ -18,7 +18,9 @@ public partial class FlyScanPage : UserControl, IDisposable
     private readonly DispatcherTimer _timer = new() { Interval = Frame };
     private readonly SimulatedScanPeers _peers = new();
     private FlyScanInputs _inputs = new();
+    private long _inputConnectionEpoch;
     private SimulatedMachine? _machine;
+    private SimulatedIoMonitor? _monitor;
     private FlyScanWorkflow? _flow;
     private FlyScanHistory? _history;
     private TeachGroup[] _draft = EmptyGroups();
@@ -32,9 +34,10 @@ public partial class FlyScanPage : UserControl, IDisposable
 
     public FlyScanPage() => InitializeComponent();
 
-    internal void Initialize(SimulatedMachine machine, string journal, FlyScanHistory history)
+    internal void Initialize(SimulatedMachine machine, string journal, FlyScanHistory history, SimulatedIoMonitor monitor)
     {
         _machine = machine;
+        _monitor = monitor;
         _lastMachineContext = machine.ContextVersion;
         _history = history;
         try { _flow = new FlyScanWorkflow(machine, journal, history: history); }
@@ -42,12 +45,15 @@ public partial class FlyScanPage : UserControl, IDisposable
         {
             _journalError = $"仿真检查点无法打开。{journal}。{ex.Message}";
         }
-        TryAction(() => ShowRecipe(FlyScanRecipe.Load(ExamplePath)));
+        ConnectedSignal.IsChecked = machine.CardConnected;
+        if (_flow is not null) ReadInputs();
+        TryAction(() => ShowRecipe(_flow?.RecipeAwaitingRecovery ?? FlyScanRecipe.Load(ExamplePath)));
         _machine.PropertyChanged += MachineChanged;
         _timer.Tick += (_, _) =>
         {
             ObserveSignals();
             if (AutoStep.IsChecked == true && _flow?.IsRunning == true) Advance(Frame);
+            else if (_flow?.RetryPendingCompletion() == true) Refresh();
         };
         ObserveSignals();
         _timer.Start();
@@ -57,10 +63,16 @@ public partial class FlyScanPage : UserControl, IDisposable
     private void MachineChanged(object? sender, PropertyChangedEventArgs e)
     {
         if (_machine is null) return;
+        ConnectedSignal.IsChecked = _machine.CardConnected;
         if (_lastMachineContext != _machine.ContextVersion)
         {
             _lastMachineContext = _machine.ContextVersion;
-            if (_flow?.IsRunning == true) _flow.Tick(TimeSpan.Zero, ReadInputs());
+            if (_flow is { } flow)
+            {
+                var inputs = ReadInputs();
+                if (flow.IsRunning) flow.Tick(TimeSpan.Zero, inputs);
+            }
+            ObserveSignals();
         }
         Refresh();
     }
@@ -193,17 +205,26 @@ public partial class FlyScanPage : UserControl, IDisposable
 
     private void SignalChanged(object sender, RoutedEventArgs e)
     {
+        if (ReferenceEquals(sender, ConnectedSignal))
+        {
+            _machine?.SetCardConnected(ConnectedSignal.IsChecked == true);
+            return;
+        }
         ObserveSignals();
         if (_flow?.IsRunning == true) Advance(TimeSpan.Zero);
-        else Refresh();
+        else
+        {
+            if (_flow is not null) ReadInputs();
+            Refresh();
+        }
     }
 
     private void ObserveSignals()
     {
-        if (_flow is null || _history is null) return;
+        if (_flow is null || _history is null || _machine is null) return;
         try
         {
-            _history.Observe(ConnectedSignal.IsChecked == true, AlarmSignal.IsChecked == true, EmergencySignal.IsChecked == true);
+            _history.Observe(_machine.CardConnected, AlarmSignal.IsChecked == true, EmergencySignal.IsChecked == true);
             _recordError = null;
         }
         catch (SqliteException ex) { _recordError = ex.Message; }
@@ -216,9 +237,13 @@ public partial class FlyScanPage : UserControl, IDisposable
         catch (SqliteException ex) { _recordError = ex.Message; }
     }
 
-    private FlyScanInputs ReadInputs() => _inputs = _peers.Read(_flow!.Outputs,
-        LoadedSignal.IsChecked == true, UnloadedSignal.IsChecked == true, RobotSignal.IsChecked == true,
-        ReadySignal.IsChecked == true, ConnectedSignal.IsChecked == true, AlarmSignal.IsChecked == true, EmergencySignal.IsChecked == true);
+    private FlyScanInputs ReadInputs()
+    {
+        _inputConnectionEpoch = _monitor!.ScanConnectionEpoch;
+        return _inputs = _peers.Read(_flow!.Outputs,
+            LoadedSignal.IsChecked == true, UnloadedSignal.IsChecked == true, RobotSignal.IsChecked == true,
+            ReadySignal.IsChecked == true, _machine!.CardConnected, AlarmSignal.IsChecked == true, EmergencySignal.IsChecked == true);
+    }
 
     private void Interrupt(ScanInterruption reason) => TryAction(() =>
     {
@@ -259,8 +284,10 @@ public partial class FlyScanPage : UserControl, IDisposable
         RunCounts.Text = $"本件确认组 {flow.ConfirmedGroups}/2　尝试 {flow.Attempt}　组内确认触发 {flow.LastConfirmedTrigger}" +
             $"　累计工件 {flow.Counts.Pieces}　累计组 {flow.Counts.Groups}　累计脉冲 {flow.Counts.Triggers}";
         var outputs = flow.Outputs;
+        _monitor?.PublishScanIo(_inputConnectionEpoch, _inputs, outputs);
+        string ready = _inputs.CardConnected ? OnOff(_inputs.VisionReady) : "未知";
         Handshake.Text = $"上料请求 {OnOff(outputs.RequestLoad.HasValue)}　机器人位号 {outputs.RequestRobot?.Pose ?? "—"}" +
-            $"　保持请求 {OnOff(outputs.HoldRobot)}　视觉 Ready {OnOff(ReadySignal.IsChecked == true)}" +
+            $"　保持请求 {OnOff(outputs.HoldRobot)}　视觉 Ready {ready}" +
             $"　触发使能 {OnOff(flow.TriggerArmed)}　触发 {OnOff(outputs.VisionTrigger)}　下料请求 {OnOff(outputs.RequestUnload.HasValue)}";
         MotionFeedback.Text = flow.Feedback is { } feedback
             ? $"X {feedback.Position.X:F4} mm    Y {feedback.Position.Y:F4} mm    R1 {feedback.Position.R1:F4}°    R2 {feedback.R2:F4}°" +

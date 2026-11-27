@@ -35,7 +35,7 @@ public partial class MainWindow : Window
         SimulationRole.SelectedIndex = SimulationMode.SelectedIndex = SimulationStatus.SelectedIndex = 0;
         SetupHistoryPages(history);
         FlySettings.DataContext = new SettingsDisplay(_historyLocation, machine.Actor);
-        ScanPage.Initialize(machine, storage.JournalPath, history);
+        ScanPage.Initialize(machine, storage.JournalPath, history, monitor);
         ScanPage.AxisPageRequested += (_, _) => NavigateParameters("AxisParameterView");
         AxisPage.ParameterPageRequested += NavigateParameters;
         CylinderPage.ParameterPageRequested += NavigateParameters;

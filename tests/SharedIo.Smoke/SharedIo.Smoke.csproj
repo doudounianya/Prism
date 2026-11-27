@@ -7,6 +7,8 @@
     <Nullable>enable</Nullable>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="../Fixtures/SharedIoFixture.cs" />
+    <EmbeddedResource Include="../Fixtures/SharedIoFixture.json" LogicalName="SharedIoFixture.json" />
     <ProjectReference Include="../../Company.Shell/Company.Shell.csproj" />
   </ItemGroup>
 </Project>

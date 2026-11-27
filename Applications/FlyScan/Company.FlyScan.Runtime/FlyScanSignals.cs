@@ -5,15 +5,16 @@ public enum ScanInterruption { Cancelled, Paused, Stopped, ReadyLost, RobotMoved
 
 public sealed record RobotPoseRequest(Guid Command, string Pose);
 public sealed record RobotPoseFeedback(Guid Command, string Pose, bool InPosition, bool Moving);
+public readonly record struct TransferRequest(Guid Command, Guid Workpiece);
 
 /// <summary>本机回路的信号快照。上下料及机器人相关标识用于仿真中隔离前后握手。</summary>
 public sealed record FlyScanInputs(
-    Guid? LoadedWorkpiece = null, RobotPoseFeedback? Robot = null, bool VisionReady = false,
-    Guid? UnloadedWorkpiece = null, bool CardConnected = true, bool Alarm = false, bool EmergencyStop = false,
+    TransferRequest? LoadConfirmation = null, RobotPoseFeedback? Robot = null, bool VisionReady = false,
+    TransferRequest? UnloadConfirmation = null, bool CardConnected = true, bool Alarm = false, bool EmergencyStop = false,
     bool BlockCleanup = false);
 
-public sealed record FlyScanOutputs(Guid? RequestLoad, RobotPoseRequest? RequestRobot, bool HoldRobot,
-    Guid? RequestUnload, bool VisionTrigger);
+public sealed record FlyScanOutputs(TransferRequest? RequestLoad, RobotPoseRequest? RequestRobot, bool HoldRobot,
+    TransferRequest? RequestUnload, bool VisionTrigger);
 public sealed record TriggerPulse(string Name, ScanPoint Position, DateTimeOffset On, DateTimeOffset Off);
 public sealed record ScanFlightEvent(DateTimeOffset Time, Guid Workpiece, int Group, int Attempt, string Kind,
     string Description, TriggerPulse? Pulse = null);
