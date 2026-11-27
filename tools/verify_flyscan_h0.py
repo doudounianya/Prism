@@ -133,6 +133,7 @@ def check_artifacts(artifacts, folder):
         require(path not in paths, "Specify separate raw evidence files for each channel group.")
         paths.add(path)
         with path.open("rb") as stream:
+            require(path.stat().st_size > 0, f"{role}: raw evidence is empty.")
             require(hashlib.file_digest(stream, "sha256").hexdigest() == row["sha256"],
                     f"{role}: evidence checksum mismatch.")
 
@@ -167,6 +168,25 @@ def check_setup(bench, sdk):
             "Confirm R1/R2 gear establishment, parameters and release readback.")
 
 
+def segment_intersects_target(start, end, target, tolerance):
+    """Check the common window of all axes along one interpolated encoder segment."""
+    first, last = 0.0, 1.0
+    for before, after, expected, limit in zip(start, end, target, tolerance):
+        offset = before - expected
+        travel = after - before
+        if travel == 0:
+            if abs(offset) > limit:
+                return False
+            continue
+        enter = (-limit - offset) / travel
+        leave = (limit - offset) / travel
+        first = max(first, min(enter, leave))
+        last = min(last, max(enter, leave))
+        if first > last:
+            return False
+    return True
+
+
 def evaluate_case(name, case, limits):
     trace = case["encoders"]
     edges = case["edges"]
@@ -197,6 +217,9 @@ def evaluate_case(name, case, limits):
                            for left, right, elapsed in zip(trace, trace[1:], gaps))
     if name in ("forward", "reverse"):
         require(len(targets) >= 2 and len(edges) == len(targets) * 2, "Pulse count must match the ordered multi-point plan.")
+        for index, (left, right) in enumerate(zip(targets, targets[1:]), start=1):
+            require(any(abs(before - after) > 2 * limit for before, after, limit in zip(left, right, tolerance)),
+                    f"Targets {index} and {index + 1} have overlapping tolerance windows and cannot verify pulse order.")
         require(master_change * (1 if name == "forward" else -1) > limits["gearPositionDeg"], "Missing R1 motion in the expected direction.")
         require(all(abs(trace[-1][column] - start[column]) > tolerance[column - 1] for column in (1, 2, 3)),
                 "Each of X, Y and R1 must move during the positive scan.")
@@ -231,12 +254,47 @@ def evaluate_case(name, case, limits):
     wrong = {"rejectX": 0, "rejectY": 1, "rejectR1": 2}[name]
     matching_other_axes = [row for row in trace if all(
         abs(row[i + 1] - target[i]) <= tolerance[i] for i in range(3) if i != wrong)]
-    require(matching_other_axes and all(abs(row[wrong + 1] - target[wrong]) > tolerance[wrong]
-                                      for row in matching_other_axes),
-            "The other two coordinates must reach the target while the challenged coordinate is outside tolerance.")
+    require(matching_other_axes, "The other two coordinates must reach the target to challenge the remaining axis.")
+    for left, right in zip(trace, trace[1:]):
+        require(not segment_intersects_target(left[1:4], right[1:4], target, tolerance),
+                f"The negative trace crosses the full target window in encoder interval [{left[0]}, {right[0]}] ms.")
     require(any(any(abs(row[i + 1] - start[i + 1]) > tolerance[i] for i in range(3) if i != wrong) for row in trace),
             "The rejection test must include observed motion.")
     return {"pulses": 0, "samplesWithOtherAxesInTolerance": len(matching_other_axes)}
+
+
+def check_compare_status(case, port, pulses):
+    """Cross-check the controller's readback against the independently measured pulses."""
+    samples = case.get("compareStatus")
+    require(isinstance(samples, list) and len(samples) >= 2 and
+            all(isinstance(row, list) and len(row) == 5 and finite(row[0]) and
+                all(type(value) is int for value in row[1:]) for row in samples),
+            "Compare readback uses rows [time_ms, port, return_code, status_word, output_count].")
+    require(samples[0][0] <= case["encoders"][0][0] and samples[-1][0] >= case["encoders"][-1][0] and
+            all(right[0] > left[0] for left, right in zip(samples, samples[1:])),
+            "Compare readback must bracket the encoder trace on the same ordered timebase.")
+
+    # IMC_GetCompareStatus: bit 0 is running. Bits 1–3 report error, passed position, and overlap.
+    require(all(sample_port == port and code == 0 and 0 <= status <= 0xFFFF and not status & 0x0E and
+                0 <= count <= 0x7FFFFFFF for _, sample_port, code, status, count in samples),
+            "Compare readback must use the configured port and report no failed read or compare error.")
+    require(samples[0][3] & 1, "The comparator was not running at the start of the encoder trace.")
+    require(all(left[4] <= right[4] for left, right in zip(samples, samples[1:])),
+            "The controller compare count went backwards during the trace.")
+
+    baseline = samples[0][4]
+    completed = False
+    for _, _, _, status, count in samples:
+        if status & 1:
+            require(not completed, "The comparator restarted during the trace.")
+        else:
+            require(pulses > 0 and count - baseline == pulses,
+                    "The comparator stopped without completing the independently observed pulse count.")
+            completed = True
+
+    issued = samples[-1][4] - baseline
+    require(issued == pulses, "The controller compare count differs from the independently observed pulses.")
+    return {"port": port, "samples": len(samples), "countBefore": baseline, "countAfter": samples[-1][4]}
 
 
 def evaluate_bench(bench, folder, sdk):
@@ -256,7 +314,11 @@ def evaluate_bench(bench, folder, sdk):
     results, errors = {}, {}
     for name in REQUIRED_CASES:
         try:
-            results[name] = evaluate_case(name, cases[name], limits)
+            case = cases[name]
+            result = evaluate_case(name, case, limits)
+            if name != "gearExit":
+                result["compareReadback"] = check_compare_status(case, bench["compare"]["port"], result["pulses"])
+            results[name] = result
         except (ValueError, KeyError, TypeError, OverflowError) as error:
             errors[name] = str(error)
     return {"status": "failed" if errors else "readyForReview", "cases": results, "errors": errors}

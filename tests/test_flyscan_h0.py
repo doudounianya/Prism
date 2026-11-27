@@ -24,7 +24,8 @@ def positive(reverse=False):
     indexes = range(4, -1, -1) if reverse else range(5)
     rows = [[tick, step, 2 * step, step, 17 + step] for tick, step in enumerate(indexes)]
     return {"targets": [rows[1][1:4], rows[3][1:4]], "encoders": rows,
-            "edges": [[1, "rise"], [1.3, "fall"], [3, "rise"], [3.3, "fall"]]}
+            "edges": [[1, "rise"], [1.3, "fall"], [3, "rise"], [3.3, "fall"]],
+            "compareStatus": [[-0.25, 4, 0, 1, 7], [2.5, 4, 0, 1, 8], [4.25, 4, 0, 0, 9]]}
 
 
 def rejected(axis):
@@ -33,6 +34,7 @@ def rejected(axis):
     for row in case["encoders"]:
         row[axis + 1] += 10
     case["edges"] = []
+    case["compareStatus"] = [[-0.25, 4, 0, 1, 7], [4.25, 4, 0, 1, 7]]
     return case
 
 
@@ -95,6 +97,31 @@ class H0Tests(unittest.TestCase):
                 with self.assertRaisesRegex(ValueError, message):
                     h0.evaluate_case("forward", case, LIMITS)
 
+    def test_rejects_overlapping_adjacent_target_windows(self):
+        for offset in (0, 0.125, 0.25):
+            with self.subTest(offset=offset):
+                case = positive()
+                case["encoders"][2] = [2, 1, 2, 1, 18]
+                case["encoders"][3] = [3, 1 + offset, 2, 1, 18]
+                case["targets"][1] = case["encoders"][3][1:4]
+                if offset <= 0.125:
+                    with self.assertRaisesRegex(ValueError, "overlapping tolerance windows"):
+                        h0.evaluate_case("forward", case, LIMITS)
+                else:
+                    self.assertEqual(h0.evaluate_case("forward", case, LIMITS)["pulses"], 2)
+
+    def test_rejects_negative_trace_crossing_full_target_between_samples(self):
+        for axis, name in enumerate(("rejectX", "rejectY", "rejectR1")):
+            with self.subTest(axis=axis):
+                target = [1, 2, 1]
+                challenge = target.copy()
+                challenge[axis] += 10
+                coordinates = [challenge, [value - 1 for value in target], [value + 1 for value in target]]
+                case = {"targets": [target], "edges": [],
+                        "encoders": [[index, *point, point[2] + 17] for index, point in enumerate(coordinates)]}
+                with self.assertRaisesRegex(ValueError, "crosses the full target window"):
+                    h0.evaluate_case(name, case, LIMITS)
+
     def test_timestamp_gap_or_gear_slip(self):
         case = positive()
         case["encoders"].pop(2)
@@ -109,6 +136,57 @@ class H0Tests(unittest.TestCase):
         case["encoders"][1][4] += 1
         with self.assertRaisesRegex(ValueError, "R2 stationary"):
             h0.evaluate_case("gearExit", case, LIMITS)
+
+    def test_position_window_includes_exact_boundary_touch(self):
+        target = [0, 0, 0]
+        tolerance = [0.125] * 3
+        self.assertTrue(h0.segment_intersects_target([-0.25, 0, 0], [0, 0.25, 0], target, tolerance))
+        self.assertTrue(h0.segment_intersects_target([0, 0.25, 0], [-0.25, 0, 0], target, tolerance))
+        self.assertFalse(h0.segment_intersects_target([-0.25, 0, 0], [0, 0.26, 0], target, tolerance))
+
+    def test_compare_readback_matches_independent_count(self):
+        case = positive()
+        self.assertEqual(h0.check_compare_status(case, 4, 2),
+                         {"port": 4, "samples": 3, "countBefore": 7, "countAfter": 9})
+        case["compareStatus"][-1][3:] = [1, 10]
+        with self.assertRaisesRegex(ValueError, "count differs"):
+            h0.check_compare_status(case, 4, 2)
+        case["compareStatus"][-1][3:] = [0, 8]
+        with self.assertRaisesRegex(ValueError, "stopped"):
+            h0.check_compare_status(case, 4, 2)
+        case["compareStatus"][-1][3:] = [1, 6]
+        with self.assertRaisesRegex(ValueError, "went backwards"):
+            h0.check_compare_status(case, 4, 2)
+
+    def test_compare_readback_requires_valid_status_through_trace(self):
+        for column, value, message in (
+            (0, 3.9, "bracket"),
+            (1, 5, "configured port"),
+            (2, 123, "failed read"),
+            (3, 3, "compare error"),
+            (3, 5, "compare error"),
+            (3, 9, "compare error"),
+        ):
+            with self.subTest(column=column, value=value):
+                case = positive()
+                case["compareStatus"][-1][column] = value
+                with self.assertRaisesRegex(ValueError, message):
+                    h0.check_compare_status(case, 4, 2)
+        case = positive()
+        case["compareStatus"][1:] = [[3, 4, 0, 0, 9], [4.25, 4, 0, 1, 9]]
+        with self.assertRaisesRegex(ValueError, "restarted"):
+            h0.check_compare_status(case, 4, 2)
+
+    def test_compare_rejection_requires_running_comparator(self):
+        case = rejected(0)
+        self.assertEqual(h0.check_compare_status(case, 4, 0)["countAfter"], 7)
+        case["compareStatus"][0][3] = 0
+        with self.assertRaisesRegex(ValueError, "not running"):
+            h0.check_compare_status(case, 4, 0)
+        case["compareStatus"][0][3] = 1
+        case["compareStatus"][-1][3] = 0
+        with self.assertRaisesRegex(ValueError, "stopped"):
+            h0.check_compare_status(case, 4, 0)
 
     def test_missing_or_synthetic_bench_cannot_clear_gate(self):
         template = ROOT / "examples/Motion/FlyScan.IMC30G.H0.example.json"
@@ -141,13 +219,31 @@ class H0Tests(unittest.TestCase):
                 source.update(terminalChannel=channel, source="ExternalEncoder")
             example["gear"].update(followedFeedback=True, releasedFeedback=True)
             sdk = [{"sha256": "a"*64, "missing": {}}]
-            self.assertEqual(h0.evaluate_bench(example, folder, sdk)["status"], "readyForReview")
+            report = h0.evaluate_bench(example, folder, sdk)
+            self.assertEqual(report["status"], "readyForReview")
+            self.assertEqual(report["cases"]["forward"]["compareReadback"]["countAfter"], 9)
+            invalid = copy.deepcopy(example)
+            del invalid["cases"]["rejectX"]["compareStatus"]
+            invalid["cases"]["rejectY"]["compareStatus"][0][3] = 0
+            report = h0.evaluate_bench(invalid, folder, sdk)
+            self.assertEqual(report["status"], "failed")
+            self.assertIn("Compare readback uses rows", report["errors"]["rejectX"])
+            self.assertIn("not running", report["errors"]["rejectY"])
+            invalid = copy.deepcopy(example)
+            invalid["cases"]["rejectX"]["encoders"].extend([[5, 0, 1, 0, 17], [6, 2, 3, 2, 19]])
+            report = h0.evaluate_bench(invalid, folder, sdk)
+            self.assertEqual(report["status"], "failed")
+            self.assertIn("crosses the full target window", report["errors"]["rejectX"])
             example["compare"]["dimensionReadback"] = 2
             with self.assertRaisesRegex(ValueError, "3D"):
                 h0.evaluate_bench(example, folder, sdk)
             example["compare"]["dimensionReadback"] = 3
             (folder / "trigger.txt").write_text("altered")
             with self.assertRaisesRegex(ValueError, "checksum"):
+                h0.evaluate_bench(example, folder, sdk)
+            (folder / "trigger.txt").write_bytes(b"")
+            example["artifacts"]["trigger"]["sha256"] = hashlib.sha256(b"").hexdigest()
+            with self.assertRaisesRegex(ValueError, "raw evidence is empty"):
                 h0.evaluate_bench(example, folder, sdk)
 
 

@@ -46,11 +46,11 @@
     "gear": { "file": null, "sha256": null }
   },
   "cases": {
-    "forward": { "targets": [], "encoders": [], "edges": [] },
-    "reverse": { "targets": [], "encoders": [], "edges": [] },
-    "rejectX": { "targets": [], "encoders": [], "edges": [] },
-    "rejectY": { "targets": [], "encoders": [], "edges": [] },
-    "rejectR1": { "targets": [], "encoders": [], "edges": [] },
+    "forward": { "targets": [], "encoders": [], "edges": [], "compareStatus": [] },
+    "reverse": { "targets": [], "encoders": [], "edges": [], "compareStatus": [] },
+    "rejectX": { "targets": [], "encoders": [], "edges": [], "compareStatus": [] },
+    "rejectY": { "targets": [], "encoders": [], "edges": [], "compareStatus": [] },
+    "rejectR1": { "targets": [], "encoders": [], "edges": [], "compareStatus": [] },
     "gearExit": { "targets": [], "encoders": [], "edges": [] }
   }
 }
