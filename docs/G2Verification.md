@@ -27,12 +27,16 @@ PLC HMI 操作探针 78 项通过。确认关闭到窗口消失为 66 ms，窗�
 - 两个独立宿主的 Release 输出加载同一份 Company.Hmi.Presentation.dll，SHA-256 见证据包。公共 WPF 层包含模式图、页面与输入控件。PLC HMI 保留原采集、会话授权、人员锁与请求服务，飞拍应用使用自己的仿真状态和命令入口。
 - 架构检查覆盖 27 个项目及 16 个无界面库，0 项违规。Debug 和 Release 均为 0 个错误。Release 干净重建有 39 个既有警告，按文件、位置、代码和项目与 G1 对照，新增 0 项警告。
 - 五个既有冒烟入口全部通过。Headless 通过，Platform 57/57，HMI Authorization 118/118，Runtime 65/65，Motion Configuration 54/54。
-- 在 Windows 上启动 Company.FlyScan.Shell 查看仿真页面。可通过下列命令复跑飞拍 WPF 验证。PLC 回归在独立输出目录中运行，测试探针与准备脚本随证据归档。
+- G2 的 PLC 回归在独立输出目录运行，测试探针与准备脚本保存在本机证据包中。
+
+## 当前版本复跑
+
+在当前解决方案中以 `FlyScanDebug` 或 `FlyScanRelease` 启动 `Company.Shell`，查看飞拍仿真页面。以下命令用于在 Windows 上复跑架构检查和共享界面冒烟测试。
 
 ```powershell
 python tools/verify_architecture.py
-dotnet run --project tests/SharedControlPages.Smoke/SharedControlPages.Smoke.csproj
-dotnet run --project tests/SharedIo.Smoke/SharedIo.Smoke.csproj
+dotnet run --project tests/SharedControlPages.Smoke/SharedControlPages.Smoke.csproj -p:CompanyProduct=FlyScan
+dotnet run --project tests/SharedIo.Smoke/SharedIo.Smoke.csproj -p:CompanyProduct=FlyScan
 ```
 
-日志、截图、验证代码和变更文件指纹见 G2 验证证据（本机归档）。原基线与恢复证据见 [G0 与 G1 验收记录](G0G1Verification.md)。
+G2 的日志、截图、验证代码和文件指纹收录于项目根目录下的本机归档 `docs/verification/2026-11-24-g2.zip`。基线与恢复记录见 [G0 与 G1 验收记录](G0G1Verification.md)。当前发布候选的统一复跑方法见 [G6 离线验证](G6ReleaseCandidates.md)。
